@@ -77,12 +77,9 @@ interface InteractiveMapProps {
 function MapClickHandler({ onAreaClick }: { onAreaClick?: (lat: number, lng: number) => void }) {
   useMapEvents({
     click: (e) => {
-      console.log('Map clicked at:', e.latlng.lat, e.latlng.lng);
+      console.log(`🖱️ Map clicked at: ${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`);
       if (onAreaClick) {
-        console.log('Calling onAreaClick handler');
         onAreaClick(e.latlng.lat, e.latlng.lng);
-      } else {
-        console.log('No onAreaClick handler provided');
       }
     },
   });
