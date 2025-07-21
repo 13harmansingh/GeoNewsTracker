@@ -71,40 +71,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`Created ${uniqueNews.length} fresh news markers at ${latitude}, ${longitude} for category: ${category || 'all'}`);
       res.json(uniqueNews);
-
-      let articles;
-      try {
-        // Fetch fresh news with category filter if provided
-        const categoryParam = category && typeof category === 'string' ? category.toLowerCase() : undefined;
-        articles = await newsService.fetchWorldwideNews(undefined, categoryParam);
-        
-        // Create location-specific versions of the articles
-        articles = articles.slice(0, 3).map((article, index) => ({
-          ...article,
-          id: Date.now() + index, // Unique ID for new markers
-          latitude: latitude + (Math.random() - 0.5) * 0.1, // Small random offset around clicked point
-          longitude: longitude + (Math.random() - 0.5) * 0.1,
-          location: `Custom Location ${index + 1}`,
-          isLocationCreated: true // Mark as user-created
-        }));
-
-        console.log(`Created ${articles.length} fresh news markers at ${latitude}, ${longitude} for category: ${categoryParam || 'all'}`);
-        
-      } catch (apiError) {
-        console.warn("Failed to fetch fresh news, using local storage:", apiError);
-        articles = await storage.getNewsArticles();
-        // Apply same location mapping for fallback data
-        articles = articles.slice(0, 3).map((article, index) => ({
-          ...article,
-          id: Date.now() + index,
-          latitude: latitude + (Math.random() - 0.5) * 0.1,
-          longitude: longitude + (Math.random() - 0.5) * 0.1,
-          location: `Custom Location ${index + 1}`,
-          isLocationCreated: true
-        }));
-      }
-
-      res.json(articles);
     } catch (error) {
       console.error("Error creating location markers:", error);
       res.status(500).json({ message: "Failed to create location markers" });

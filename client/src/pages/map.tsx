@@ -124,7 +124,6 @@ export default function MapPage() {
       }
     } catch (error) {
       console.error('🚨 Error creating location marker:', error);
-    }ror);
     }
   };
 
