@@ -217,6 +217,23 @@ class NewsService {
     return { category: "GENERAL", isBreaking };
   }
 
+  // Map user-friendly category names to API categories
+  private mapUserCategoryToApi(userCategory: string): string {
+    const categoryMap: Record<string, string> = {
+      'BREAKING': 'top',
+      'LOCAL': 'top', 
+      'SPORTS': 'sports',
+      'WEATHER': 'environment',
+      'BUSINESS': 'business',
+      'TECHNOLOGY': 'science',
+      'POLITICS': 'politics',
+      'HEALTH': 'health',
+      'ENTERTAINMENT': 'entertainment'
+    };
+    
+    return categoryMap[userCategory.toUpperCase()] || userCategory.toLowerCase();
+  }
+
   async fetchWorldwideNews(country?: string, category?: string, query?: string): Promise<NewsArticle[]> {
     if (!this.apiKey) {
       throw new Error("NewsData.io API key not configured");
@@ -229,8 +246,11 @@ class NewsService {
       // Add optional parameters safely
       if (query && query.length >= 3) {
         url += `&q=${encodeURIComponent(query.trim())}`;
-      } else if (category && ["business", "entertainment", "environment", "food", "health", "politics", "science", "sports", "technology", "top", "world"].includes(category.toLowerCase())) {
-        url += `&category=${category.toLowerCase()}`;
+      } else if (category) {
+        const mappedCategory = this.mapUserCategoryToApi(category);
+        if (["business", "entertainment", "environment", "food", "health", "politics", "science", "sports", "technology", "top", "world"].includes(mappedCategory)) {
+          url += `&category=${mappedCategory}`;
+        }
       } else if (country && country.length === 2) {
         url += `&country=${country.toLowerCase()}`;
       }

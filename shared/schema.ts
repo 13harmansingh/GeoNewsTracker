@@ -41,5 +41,7 @@ export const insertNewsArticleSchema = createInsertSchema(newsArticles).omit({
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
-export type NewsArticle = typeof newsArticles.$inferSelect;
+export type NewsArticle = typeof newsArticles.$inferSelect & {
+  isLocationCreated?: boolean; // For user-created location markers
+};
 export type InsertNewsArticle = z.infer<typeof insertNewsArticleSchema>;

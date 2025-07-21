@@ -74,29 +74,42 @@ export default function MapPage() {
   };
 
   const handleAreaClick = async (lat: number, lng: number) => {
-    console.log(`🗺️ Area clicked at coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+    console.log(`🗺️ Creating news point at: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
     
     try {
-      const response = await fetch(`/api/news/location?lat=${lat}&lng=${lng}&radius=10`);
-      const areaNews = await response.json();
+      // Build API URL with location and category filter
+      let apiUrl = `/api/news/location-fresh?lat=${lat}&lng=${lng}`;
+      if (activeFilter) {
+        apiUrl += `&category=${activeFilter}`;
+      }
       
-      console.log(`📰 Found ${areaNews.length} news articles in clicked area`);
+      console.log(`🔄 Fetching fresh ${activeFilter || 'general'} news for this location...`);
       
-      if (areaNews.length > 0) {
-        setMapCenter([lat, lng]);
-        setMapZoom(Math.max(mapZoom, 8));
+      const response = await fetch(apiUrl);
+      const locationNews = await response.json();
+      
+      if (locationNews.length > 0) {
+        console.log(`✅ Created ${locationNews.length} news markers at clicked location`);
         
+        // Center map on clicked location
+        setMapCenter([lat, lng]);
+        setMapZoom(Math.max(mapZoom, 10));
+        
+        // Refresh the map with new location-based news
         queryClient.invalidateQueries({ queryKey: ['/api/news'] });
         
-        // Log the news articles found
-        areaNews.forEach((article: any, index: number) => {
-          console.log(`Article ${index + 1}: ${article.title} at ${article.latitude.toFixed(4)}, ${article.longitude.toFixed(4)}`);
-        });
+        // Show the first article found
+        setSelectedArticle(locationNews[0]);
+        setIsNewsVisible(true);
+        
       } else {
-        console.log('❌ No news found in this area, try clicking another location');
+        console.log('📍 Creating placeholder marker - no specific news found for this exact location');
+        // Still center the map and show that we tried
+        setMapCenter([lat, lng]);
+        setMapZoom(Math.max(mapZoom, 10));
       }
     } catch (error) {
-      console.error('🚨 Error fetching area news:', error);
+      console.error('🚨 Error creating location marker:', error);
     }
   };
 
