@@ -38,40 +38,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid coordinates" });
       }
 
-      // Clear any cached results to prevent mixing
-      console.log(`🗑️ Clearing cache for fresh location request at ${latitude}, ${longitude}`);
-      
-      let articles;
-      try {
-        // Get fresh news based on category if provided
-        if (category && typeof category === 'string' && category.toLowerCase() !== 'all') {
-          articles = await newsService.getNewsByCategory(category);
-        } else {
-          articles = await newsService.fetchWorldwideNews();
-        }
-      } catch (apiError) {
-        console.warn("Failed to fetch fresh news, using local storage:", apiError);
-        articles = await storage.getNewsArticles();
-      }
-
-      // Create a small set of unique news items positioned near the clicked location
-      const uniqueNews = articles.slice(0, 3).map((article, index) => {
-        const randomOffset = 0.05; // Small random offset
-        const offsetLat = latitude + (Math.random() - 0.5) * randomOffset;
-        const offsetLng = longitude + (Math.random() - 0.5) * randomOffset;
-        
-        return {
-          ...article,
-          id: Date.now() + index, // Unique ID to prevent conflicts
-          latitude: offsetLat,
-          longitude: offsetLng,
-          location: `Custom Location ${index + 1}`
-        };
-      });
-
-      console.log(`Created ${uniqueNews.length} fresh news markers at ${latitude}, ${longitude} for category: ${category || 'all'}`);
-      res.json(uniqueNews);
-
       let articles;
       try {
         // Fetch fresh news with category filter if provided
