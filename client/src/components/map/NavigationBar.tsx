@@ -21,14 +21,14 @@ export default function NavigationBar() {
           >
             <Menu className="w-5 h-5 text-gray-800" />
           </button>
-          
+
           <div className="flex flex-col items-center">
             <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-none">
-              WorldNews
+              Knew
             </h1>
             <p className="text-xs text-gray-600 font-medium">Global Coverage</p>
           </div>
-          
+
           <button 
             onClick={handleProfileClick}
             className="touch-feedback p-3 rounded-2xl hover:bg-white hover:bg-opacity-15 transition-all duration-200"

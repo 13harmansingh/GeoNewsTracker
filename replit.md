@@ -1,8 +1,8 @@
-# GeoNews - Location-Based News Application
+# Knew - Location-Based News Application
 
 ## Overview
 
-GeoNews is a modern, location-based news application that displays news articles on an interactive map. Users can explore news by geographic location, filter by categories, and search for specific content. The application features a mobile-first design with iOS-inspired UI components and real-time news updates.
+Knew is a modern, location-based news application that displays news articles on an interactive map. Users can explore news by geographic location, filter by categories, and search for specific content. The application features a mobile-first design with iOS-inspired UI components and real-time news updates.
 
 ## User Preferences
 
