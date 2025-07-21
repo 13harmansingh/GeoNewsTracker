@@ -74,28 +74,29 @@ export default function MapPage() {
   };
 
   const handleAreaClick = async (lat: number, lng: number) => {
-    console.log(`Fetching news for area: ${lat}, ${lng}`);
+    console.log(`🗺️ Area clicked at coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
     
     try {
-      // Fetch news for the clicked area
-      const response = await fetch(`/api/news/location?lat=${lat}&lng=${lng}&radius=5`);
+      const response = await fetch(`/api/news/location?lat=${lat}&lng=${lng}&radius=10`);
       const areaNews = await response.json();
       
+      console.log(`📰 Found ${areaNews.length} news articles in clicked area`);
+      
       if (areaNews.length > 0) {
-        // Update the map center to the clicked location
         setMapCenter([lat, lng]);
-        setMapZoom(Math.max(mapZoom, 10));
+        setMapZoom(Math.max(mapZoom, 8));
         
-        // Invalidate and refetch news data to update the map
         queryClient.invalidateQueries({ queryKey: ['/api/news'] });
         
-        // Show a notification or update UI to indicate news was found
-        console.log(`Found ${areaNews.length} news articles in this area`);
+        // Log the news articles found
+        areaNews.forEach((article: any, index: number) => {
+          console.log(`Article ${index + 1}: ${article.title} at ${article.latitude.toFixed(4)}, ${article.longitude.toFixed(4)}`);
+        });
       } else {
-        console.log('No news found in this area');
+        console.log('❌ No news found in this area, try clicking another location');
       }
     } catch (error) {
-      console.error('Error fetching area news:', error);
+      console.error('🚨 Error fetching area news:', error);
     }
   };
 

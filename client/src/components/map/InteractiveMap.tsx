@@ -77,8 +77,12 @@ interface InteractiveMapProps {
 function MapClickHandler({ onAreaClick }: { onAreaClick?: (lat: number, lng: number) => void }) {
   useMapEvents({
     click: (e) => {
+      console.log('Map clicked at:', e.latlng.lat, e.latlng.lng);
       if (onAreaClick) {
+        console.log('Calling onAreaClick handler');
         onAreaClick(e.latlng.lat, e.latlng.lng);
+      } else {
+        console.log('No onAreaClick handler provided');
       }
     },
   });
@@ -134,15 +138,20 @@ export default function InteractiveMap({
 
         <MapClickHandler onAreaClick={onAreaClick} />
 
-        {!isLoading && news.map((article) => (
-          <Marker
-            key={article.id}
-            position={[article.latitude, article.longitude]}
-            icon={createCustomIcon(article.category, article.isBreaking || false)}
-            eventHandlers={{
-              click: () => onMarkerClick(article)
-            }}
-          >
+        {!isLoading && news.map((article) => {
+          console.log(`📍 Placing marker for "${article.title}" at ${article.latitude.toFixed(4)}, ${article.longitude.toFixed(4)}`);
+          return (
+            <Marker
+              key={article.id}
+              position={[article.latitude, article.longitude]}
+              icon={createCustomIcon(article.category, article.isBreaking || false)}
+              eventHandlers={{
+                click: () => {
+                  console.log(`🔗 Marker clicked: ${article.title}`);
+                  onMarkerClick(article);
+                }
+              }}
+            >
             <Popup className="glass-popup">
               <div className="p-3 min-w-[250px]">
                 <div className="flex items-center justify-between mb-2">
@@ -188,8 +197,14 @@ export default function InteractiveMap({
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
+                        console.log('Source button clicked, URL:', article.sourceUrl);
                         if (article.sourceUrl) {
-                          window.open(article.sourceUrl, '_blank', 'noopener,noreferrer');
+                          try {
+                            window.open(article.sourceUrl, '_blank', 'noopener,noreferrer');
+                            console.log('Window.open called successfully');
+                          } catch (error) {
+                            console.error('Error opening URL:', error);
+                          }
                         }
                       }}
                       className="px-3 py-2 border border-ios-blue text-ios-blue rounded-lg text-xs font-medium touch-feedback hover:bg-ios-blue hover:text-white transition-all"
@@ -201,7 +216,8 @@ export default function InteractiveMap({
               </div>
             </Popup>
           </Marker>
-        ))}
+          );
+        })}
       </MapContainer>
 
       {isLoading && (

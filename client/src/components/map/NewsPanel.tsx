@@ -178,8 +178,14 @@ export default function NewsPanel({ article, isVisible, onClose, relatedNews }: 
                   </button>
                   <button 
                     onClick={() => {
+                      console.log('NewsPanel source button clicked, URL:', article.sourceUrl);
                       if (article.sourceUrl) {
-                        window.open(article.sourceUrl, '_blank', 'noopener,noreferrer');
+                        try {
+                          window.open(article.sourceUrl, '_blank', 'noopener,noreferrer');
+                          console.log('Window.open called successfully from NewsPanel');
+                        } catch (error) {
+                          console.error('Error opening URL from NewsPanel:', error);
+                        }
                       } else {
                         console.log('No source URL available for this article');
                       }
