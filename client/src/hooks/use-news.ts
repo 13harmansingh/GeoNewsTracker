@@ -4,8 +4,9 @@ import type { NewsArticle } from "@shared/schema";
 const useAllNews = () => {
   return useQuery<NewsArticle[]>({
     queryKey: ["/api/news"],
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 30000, // 30 seconds for real-time updates
+    staleTime: 30 * 1000, // 30 seconds to prevent stale data
+    refetchInterval: false, // Disable auto-refetch to prevent API rate limits
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -13,7 +14,8 @@ const useFilteredNews = (category: string | null) => {
   return useQuery<NewsArticle[]>({
     queryKey: ["/api/news/category", category],
     enabled: !!category,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -21,7 +23,8 @@ const useSearchNews = (query: string) => {
   return useQuery<NewsArticle[]>({
     queryKey: ["/api/news/search", { q: query }],
     enabled: query.length > 2,
-    staleTime: 2 * 60 * 1000, // 2 minutes for search results
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -29,7 +32,8 @@ const useLocationNews = (lat: number, lng: number, radius?: number) => {
   return useQuery<NewsArticle[]>({
     queryKey: ["/api/news/location", { lat, lng, radius }],
     enabled: !!(lat && lng),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: false,
   });
 };
 

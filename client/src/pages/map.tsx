@@ -61,15 +61,26 @@ export default function MapPage() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
+          console.log(`📍 User location found: ${position.coords.latitude}, ${position.coords.longitude}`);
           setMapCenter([position.coords.latitude, position.coords.longitude]);
           setMapZoom(14);
         },
-        () => {
+        (error) => {
+          console.log('🚨 Geolocation error, falling back to NYC:', error.message);
           // Fallback to NYC
           setMapCenter([40.7589, -73.9851]);
           setMapZoom(12);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000
         }
       );
+    } else {
+      console.log('🚨 Geolocation not supported, using NYC default');
+      setMapCenter([40.7589, -73.9851]);
+      setMapZoom(12);
     }
   };
 
@@ -77,6 +88,9 @@ export default function MapPage() {
     console.log(`🗺️ Creating news point at: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
     
     try {
+      // Clear existing queries to prevent stale data
+      queryClient.removeQueries({ queryKey: ['/api/news'] });
+      
       // Build API URL with location and category filter
       let apiUrl = `/api/news/location-fresh?lat=${lat}&lng=${lng}`;
       if (activeFilter) {
@@ -95,8 +109,8 @@ export default function MapPage() {
         setMapCenter([lat, lng]);
         setMapZoom(Math.max(mapZoom, 10));
         
-        // Refresh the map with new location-based news
-        queryClient.invalidateQueries({ queryKey: ['/api/news'] });
+        // Force refresh the map with new location-based news
+        await queryClient.invalidateQueries({ queryKey: ['/api/news'] });
         
         // Show the first article found
         setSelectedArticle(locationNews[0]);
@@ -110,6 +124,7 @@ export default function MapPage() {
       }
     } catch (error) {
       console.error('🚨 Error creating location marker:', error);
+    }ror);
     }
   };
 
