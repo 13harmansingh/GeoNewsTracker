@@ -38,9 +38,9 @@ export default function ActionBar({ activeFilter, onFilterChange }: ActionBarPro
   ];
 
   return (
-    <div className="absolute bottom-6 left-4 right-4 z-30">
-      <div className="glass-morphism rounded-2xl shadow-lg">
-        <div className="flex items-center justify-around p-4">
+    <div className="absolute bottom-4 left-3 right-3 z-30 safe-area-bottom">
+      <div className="glass-morphism rounded-3xl shadow-lg">
+        <div className="flex items-center justify-around px-4 py-4">
           {filters.map((filter) => {
             const Icon = filter.icon;
             const isActive = activeFilter === filter.category;
@@ -50,19 +50,19 @@ export default function ActionBar({ activeFilter, onFilterChange }: ActionBarPro
                 key={filter.id}
                 onClick={() => onFilterChange(filter.category)}
                 className={`
-                  touch-feedback flex flex-col items-center transition-all duration-200
-                  ${isActive ? 'transform scale-110' : ''}
+                  touch-feedback flex flex-col items-center transition-all duration-300 p-2 rounded-2xl
+                  ${isActive ? 'transform scale-105 bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'}
                 `}
               >
                 <div className={`
-                  p-2 rounded-full transition-all duration-200 mb-1
-                  ${isActive ? 'bg-white bg-opacity-30' : 'hover:bg-white hover:bg-opacity-20'}
+                  p-3 rounded-2xl transition-all duration-300 mb-2
+                  ${isActive ? 'bg-white bg-opacity-25 shadow-md' : ''}
                 `}>
-                  <Icon className={`w-5 h-5 ${filter.color}`} />
+                  <Icon className={`w-6 h-6 ${filter.color} ${isActive ? 'drop-shadow-sm' : ''}`} />
                 </div>
                 <span className={`
-                  text-xs font-medium transition-all duration-200
-                  ${isActive ? 'text-gray-900 font-semibold' : 'text-gray-700'}
+                  text-xs font-medium transition-all duration-300
+                  ${isActive ? 'text-gray-900 font-bold' : 'text-gray-700'}
                 `}>
                   {filter.label}
                 </span>
