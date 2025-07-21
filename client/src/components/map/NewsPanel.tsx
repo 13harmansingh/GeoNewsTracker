@@ -180,11 +180,18 @@ export default function NewsPanel({ article, isVisible, onClose, relatedNews }: 
                     onClick={() => {
                       if (article.sourceUrl) {
                         window.open(article.sourceUrl, '_blank', 'noopener,noreferrer');
+                      } else {
+                        console.log('No source URL available for this article');
                       }
                     }}
-                    className="bg-ios-blue text-white px-4 py-2 rounded-full text-sm font-medium touch-feedback hover:bg-opacity-90 transition-all"
+                    disabled={!article.sourceUrl}
+                    className={`px-4 py-2 rounded-full text-sm font-medium touch-feedback transition-all ${
+                      article.sourceUrl 
+                        ? 'bg-ios-blue text-white hover:bg-opacity-90' 
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
                   >
-                    Read Full Article
+                    {article.sourceUrl ? 'Read Full Article' : 'Source Not Available'}
                   </button>
                 </div>
               </div>

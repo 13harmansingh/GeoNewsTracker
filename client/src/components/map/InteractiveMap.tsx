@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import { Clock, MapPin, TrendingUp } from "lucide-react";
 import type { NewsArticle } from "@shared/schema";
@@ -71,6 +71,18 @@ interface InteractiveMapProps {
   center: number[];
   zoom: number;
   isLoading: boolean;
+  onAreaClick?: (lat: number, lng: number) => void;
+}
+
+function MapClickHandler({ onAreaClick }: { onAreaClick?: (lat: number, lng: number) => void }) {
+  useMapEvents({
+    click: (e) => {
+      if (onAreaClick) {
+        onAreaClick(e.latlng.lat, e.latlng.lng);
+      }
+    },
+  });
+  return null;
 }
 
 export default function InteractiveMap({ 
@@ -78,7 +90,8 @@ export default function InteractiveMap({
   onMarkerClick, 
   center, 
   zoom,
-  isLoading 
+  isLoading,
+  onAreaClick
 }: InteractiveMapProps) {
   const mapRef = useRef<any>(null);
 
@@ -107,13 +120,19 @@ export default function InteractiveMap({
         style={{ height: '100%', width: '100%' }}
         zoomControl={false}
         className="z-0"
+        maxBounds={[[-90, -180], [90, 180]]}
+        maxBoundsViscosity={1.0}
       >
         <MapController center={center} zoom={zoom} />
         
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          noWrap={true}
+          bounds={[[-90, -180], [90, 180]]}
         />
+
+        <MapClickHandler onAreaClick={onAreaClick} />
 
         {!isLoading && news.map((article) => (
           <Marker
@@ -169,7 +188,9 @@ export default function InteractiveMap({
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
-                        window.open(article.sourceUrl, '_blank', 'noopener,noreferrer');
+                        if (article.sourceUrl) {
+                          window.open(article.sourceUrl, '_blank', 'noopener,noreferrer');
+                        }
                       }}
                       className="px-3 py-2 border border-ios-blue text-ios-blue rounded-lg text-xs font-medium touch-feedback hover:bg-ios-blue hover:text-white transition-all"
                     >

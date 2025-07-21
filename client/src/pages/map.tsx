@@ -6,6 +6,7 @@ import SearchBar from "@/components/map/SearchBar";
 import MapControls from "@/components/map/MapControls";
 import ActionBar from "@/components/map/ActionBar";
 import { useNews } from "@/hooks/use-news";
+import { queryClient } from "@/lib/queryClient";
 import type { NewsArticle } from "@shared/schema";
 
 export default function MapPage() {
@@ -72,6 +73,32 @@ export default function MapPage() {
     }
   };
 
+  const handleAreaClick = async (lat: number, lng: number) => {
+    console.log(`Fetching news for area: ${lat}, ${lng}`);
+    
+    try {
+      // Fetch news for the clicked area
+      const response = await fetch(`/api/news/location?lat=${lat}&lng=${lng}&radius=5`);
+      const areaNews = await response.json();
+      
+      if (areaNews.length > 0) {
+        // Update the map center to the clicked location
+        setMapCenter([lat, lng]);
+        setMapZoom(Math.max(mapZoom, 10));
+        
+        // Invalidate and refetch news data to update the map
+        queryClient.invalidateQueries({ queryKey: ['/api/news'] });
+        
+        // Show a notification or update UI to indicate news was found
+        console.log(`Found ${areaNews.length} news articles in this area`);
+      } else {
+        console.log('No news found in this area');
+      }
+    } catch (error) {
+      console.error('Error fetching area news:', error);
+    }
+  };
+
   return (
     <div className="relative w-full h-screen overflow-hidden bg-ios-gray">
       {/* Navigation Bar */}
@@ -87,6 +114,7 @@ export default function MapPage() {
         center={mapCenter}
         zoom={mapZoom}
         isLoading={isLoading}
+        onAreaClick={handleAreaClick}
       />
 
       {/* Map Controls */}

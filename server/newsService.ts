@@ -113,7 +113,7 @@ class NewsService {
     // Try to extract city from title or description
     const text = `${title} ${description}`.toLowerCase();
     
-    // Check for city mentions
+    // Check for city mentions first (more specific)
     for (const [city, coords] of Object.entries(CITY_COORDINATES)) {
       if (text.includes(city)) {
         return { 
@@ -124,28 +124,70 @@ class NewsService {
       }
     }
 
-    // Fallback to country coordinates
+    // Fallback to country coordinates with smaller randomization
     if (country && country.length > 0) {
       const countryCode = country[0].toLowerCase();
       const coords = COUNTRY_COORDINATES[countryCode];
       if (coords) {
-        // Add some randomization within country bounds (±2 degrees)
-        const randomLat = coords.lat + (Math.random() - 0.5) * 4;
-        const randomLng = coords.lng + (Math.random() - 0.5) * 4;
+        // Smaller randomization within country bounds (±1 degree)
+        const randomLat = coords.lat + (Math.random() - 0.5) * 2;
+        const randomLng = coords.lng + (Math.random() - 0.5) * 2;
+        
+        // Ensure coordinates stay within valid bounds
+        const clampedLat = Math.max(-85, Math.min(85, randomLat));
+        const clampedLng = Math.max(-180, Math.min(180, randomLng));
+        
         return { 
-          lat: randomLat, 
-          lng: randomLng, 
-          location: countryCode.toUpperCase()
+          lat: clampedLat, 
+          lng: clampedLng, 
+          location: this.getCountryName(countryCode)
         };
       }
     }
 
-    // Global fallback
+    // Last resort - use major global cities as fallback
+    const fallbackCities = Object.values(CITY_COORDINATES);
+    const randomCity = fallbackCities[Math.floor(Math.random() * fallbackCities.length)];
+    
     return { 
-      lat: Math.random() * 180 - 90, 
-      lng: Math.random() * 360 - 180, 
+      lat: randomCity.lat + (Math.random() - 0.5) * 0.1, // Very small offset
+      lng: randomCity.lng + (Math.random() - 0.5) * 0.1,
       location: "Global"
     };
+  }
+
+  private getCountryName(countryCode: string): string {
+    const countryNames: Record<string, string> = {
+      "us": "United States",
+      "gb": "United Kingdom", 
+      "jp": "Japan",
+      "fr": "France",
+      "de": "Germany",
+      "it": "Italy",
+      "es": "Spain",
+      "ru": "Russia",
+      "cn": "China",
+      "in": "India",
+      "au": "Australia",
+      "ca": "Canada",
+      "br": "Brazil",
+      "mx": "Mexico",
+      "kr": "South Korea",
+      "sg": "Singapore",
+      "ae": "UAE",
+      "eg": "Egypt",
+      "ng": "Nigeria",
+      "za": "South Africa",
+      "tr": "Turkey",
+      "th": "Thailand",
+      "id": "Indonesia",
+      "ph": "Philippines",
+      "ar": "Argentina",
+      "pe": "Peru",
+      "cl": "Chile",
+    };
+    
+    return countryNames[countryCode] || countryCode.toUpperCase();
   }
 
   private mapCategory(categories: string[]): { category: string; isBreaking: boolean } {

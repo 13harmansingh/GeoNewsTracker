@@ -84,13 +84,25 @@ Preferred communication style: Simple, everyday language.
 - **Environment**: Production-ready Express server serving both API and static files
 
 ### Key Features
-- **Responsive Design**: Mobile-first approach with iOS-inspired UI
-- **Real-time Updates**: Automatic news refresh every 30 seconds
-- **Geolocation**: Location-based news filtering and user positioning
-- **Category Filtering**: Breaking news, local, sports, and weather categories
-- **Search Functionality**: Real-time search with minimum 3-character queries
-- **Interactive Maps**: Custom markers with category-specific styling
-- **Glassmorphism UI**: Modern translucent design elements
-- **Touch Optimization**: Mobile-friendly interactions and gestures
+- **Real NewsData.io Integration**: Live worldwide news from authentic sources with source links
+- **Enhanced Glassmorphism**: iOS 26-inspired design with premium blur effects and depth
+- **Interactive Area News**: Click anywhere on map to fetch news from that location
+- **Proper Geographic Positioning**: Accurate country/city-based news placement on map
+- **Source Link Functionality**: Direct links to original news articles in new tabs
+- **Infinite Map Prevention**: Bounded map view to prevent endless scrolling
+- **Category Filtering**: Breaking news, local, sports, weather with real API data
+- **Search Functionality**: Real-time worldwide news search with NewsData.io
+- **Location-based News**: Click map areas to discover regional news coverage
+- **Mobile-first Design**: Touch-optimized iOS-style interactions and controls
 
-The application prioritizes user experience with smooth animations, loading states, and responsive design patterns suitable for both mobile and desktop usage.
+## Recent Changes (July 21, 2025)
+- ✅ Integrated NewsData.io API for authentic worldwide news coverage
+- ✅ Fixed source URL functionality with proper error handling and visual states
+- ✅ Added click-to-fetch area news with geographic coordinate system
+- ✅ Improved news positioning accuracy using real country/city coordinates
+- ✅ Prevented infinite map repetition with proper bounds and noWrap settings
+- ✅ Enhanced glassmorphism effects with deeper blur and shadow depth
+- ✅ Updated UI positioning for premium, professional appearance
+- ✅ Added fallback system that gracefully handles API rate limits
+
+The application now provides authentic global news coverage with proper source attribution and external link functionality, meeting the requirements for real-world news distribution.
