@@ -20,29 +20,29 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
   };
 
   return (
-    <div className="absolute top-24 left-4 right-4 z-20">
+    <div className="absolute top-20 left-3 right-3 z-20">
       <div className={`
-        glass-morphism rounded-xl mt-4 transition-all duration-200
-        ${isFocused ? 'ring-2 ring-ios-blue ring-opacity-50' : ''}
+        glass-morphism rounded-2xl mt-2 transition-all duration-300 transform
+        ${isFocused ? 'ring-2 ring-ios-blue ring-opacity-30 scale-[1.02]' : ''}
       `}>
-        <form onSubmit={handleSubmit} className="flex items-center p-3">
-          <Search className="w-5 h-5 text-gray-600 mr-3 flex-shrink-0" />
+        <form onSubmit={handleSubmit} className="flex items-center px-4 py-3">
+          <Search className="w-5 h-5 text-gray-700 mr-3 flex-shrink-0" />
           <input
             type="text"
-            placeholder="Search location or news..."
+            placeholder="Search worldwide news, cities, or countries..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
-            className="bg-transparent flex-1 outline-none text-gray-700 placeholder-gray-500 text-sm"
+            className="bg-transparent flex-1 outline-none text-gray-800 placeholder-gray-500 text-sm font-medium"
           />
           {query && (
             <button
               type="button"
               onClick={handleClear}
-              className="touch-feedback p-1 rounded-full hover:bg-white hover:bg-opacity-20 transition-all ml-2"
+              className="touch-feedback p-2 rounded-xl hover:bg-white hover:bg-opacity-20 transition-all ml-2"
             >
-              <X className="w-4 h-4 text-gray-600" />
+              <X className="w-4 h-4 text-gray-700" />
             </button>
           )}
         </form>

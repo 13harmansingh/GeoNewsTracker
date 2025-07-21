@@ -158,12 +158,25 @@ export default function InteractiveMap({
                   </span>
                 </div>
                 
-                <button 
-                  onClick={() => onMarkerClick(article)}
-                  className="w-full mt-3 bg-ios-blue text-white px-3 py-2 rounded-lg text-xs font-medium touch-feedback hover:bg-opacity-90 transition-all"
-                >
-                  Read More
-                </button>
+                <div className="flex gap-2 mt-3">
+                  <button 
+                    onClick={() => onMarkerClick(article)}
+                    className="flex-1 bg-ios-blue text-white px-3 py-2 rounded-lg text-xs font-medium touch-feedback hover:bg-opacity-90 transition-all"
+                  >
+                    Read More
+                  </button>
+                  {article.sourceUrl && (
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(article.sourceUrl, '_blank', 'noopener,noreferrer');
+                      }}
+                      className="px-3 py-2 border border-ios-blue text-ios-blue rounded-lg text-xs font-medium touch-feedback hover:bg-ios-blue hover:text-white transition-all"
+                    >
+                      Source
+                    </button>
+                  )}
+                </div>
               </div>
             </Popup>
           </Marker>

@@ -146,6 +146,17 @@ export default function NewsPanel({ article, isVisible, onClose, relatedNews }: 
                 </p>
               </div>
               
+              {/* Source Information */}
+              {article.sourceName && (
+                <div className="glass-morphism rounded-xl p-3 mb-4">
+                  <p className="text-xs text-gray-600 mb-1">Source</p>
+                  <p className="text-sm font-medium text-gray-800">{article.sourceName}</p>
+                  {article.country && (
+                    <p className="text-xs text-gray-500">{article.country.toUpperCase()}</p>
+                  )}
+                </div>
+              )}
+
               {/* Article Stats and Actions */}
               <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                 <div className="flex items-center space-x-4 text-sm text-gray-500">
@@ -165,7 +176,14 @@ export default function NewsPanel({ article, isVisible, onClose, relatedNews }: 
                   >
                     <Share className="w-4 h-4 text-gray-600" />
                   </button>
-                  <button className="bg-ios-blue text-white px-4 py-2 rounded-full text-sm font-medium touch-feedback hover:bg-opacity-90 transition-all">
+                  <button 
+                    onClick={() => {
+                      if (article.sourceUrl) {
+                        window.open(article.sourceUrl, '_blank', 'noopener,noreferrer');
+                      }
+                    }}
+                    className="bg-ios-blue text-white px-4 py-2 rounded-full text-sm font-medium touch-feedback hover:bg-opacity-90 transition-all"
+                  >
                     Read Full Article
                   </button>
                 </div>

@@ -21,6 +21,11 @@ export const newsArticles = pgTable("news_articles", {
   views: integer("views").default(0),
   publishedAt: timestamp("published_at").defaultNow(),
   location: text("location").notNull(),
+  sourceUrl: text("source_url"),
+  sourceName: text("source_name"),
+  country: text("country"),
+  language: text("language").default("en"),
+  externalId: text("external_id"),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
