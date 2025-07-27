@@ -135,7 +135,7 @@ export default function InteractiveMap({
 
         <MapClickHandler onAreaClick={onAreaClick} />
 
-        {!isLoading && news.map((article) => {
+        {!isLoading && news && Array.isArray(news) && news.map((article) => {
           console.log(`📍 Placing marker for "${article.title}" at ${article.latitude.toFixed(4)}, ${article.longitude.toFixed(4)}`);
           return (
             <Marker

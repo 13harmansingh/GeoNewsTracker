@@ -23,10 +23,10 @@ export default function MapPage() {
 
   // Determine which news to display based on current state
   const displayNews = searchQuery 
-    ? searchResults 
+    ? (searchResults || []) 
     : activeFilter 
-    ? filteredNews 
-    : allNews;
+    ? (filteredNews || []) 
+    : (allNews || []);
 
   const handleMarkerClick = (article: NewsArticle) => {
     setSelectedArticle(article);

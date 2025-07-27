@@ -168,8 +168,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('🔍 Search API called with query:', q);
       
       if (!q || typeof q !== 'string' || !q.trim()) {
-        console.log('❌ Invalid search query');
-        return res.status(400).json({ message: "Search query is required" });
+        console.log('❌ Invalid search query, returning empty array');
+        return res.json([]);
       }
 
       const searchQuery = q.trim();
@@ -193,10 +193,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('✅ Found', articles.length, 'articles from local search');
       }
 
-      res.json(articles);
+      res.json(articles || []);
     } catch (error) {
       console.error('❌ Search error:', error);
-      res.status(500).json({ message: "Search failed" });
+      res.json([]);
     }
   });
 
