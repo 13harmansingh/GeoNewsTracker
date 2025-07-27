@@ -165,17 +165,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/news/search", async (req, res) => {
     try {
       const { q } = req.query;
-      if (!q || typeof q !== 'string') {
+      console.log('🔍 Search API called with query:', q);
+      
+      if (!q || typeof q !== 'string' || !q.trim()) {
+        console.log('❌ Invalid search query');
         return res.status(400).json({ message: "Search query is required" });
       }
 
+      const searchQuery = q.trim();
+      console.log('🔍 Processing search for:', searchQuery);
+
       let articles;
       try {
-        articles = await newsService.searchNews(q);
+        articles = await newsService.searchNews(searchQuery);
+        console.log('✅ Found', articles.length, 'articles from API search');
       } catch (apiError) {
         console.warn("Failed to search news from API, using local storage:", apiError);
         const allArticles = await storage.getNewsArticles();
-        const searchTerm = q.toLowerCase();
+        const searchTerm = searchQuery.toLowerCase();
         
         articles = allArticles.filter(article => 
           article.title.toLowerCase().includes(searchTerm) ||
@@ -183,10 +190,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           article.location.toLowerCase().includes(searchTerm) ||
           article.category.toLowerCase().includes(searchTerm)
         );
+        console.log('✅ Found', articles.length, 'articles from local search');
       }
 
       res.json(articles);
     } catch (error) {
+      console.error('❌ Search error:', error);
       res.status(500).json({ message: "Search failed" });
     }
   });

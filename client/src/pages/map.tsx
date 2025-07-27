@@ -44,8 +44,12 @@ export default function MapPage() {
   };
 
   const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    setActiveFilter(null); // Clear filter when searching
+    console.log('🔍 Search triggered with query:', query);
+    setSearchQuery(query.trim());
+    // Clear active filter when searching
+    if (query.trim()) {
+      setActiveFilter(null);
+    }
   };
 
   const handleZoomIn = () => {
@@ -86,36 +90,36 @@ export default function MapPage() {
 
   const handleAreaClick = async (lat: number, lng: number) => {
     console.log(`🗺️ Creating news point at: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-    
+
     try {
       // Clear existing queries to prevent stale data
       queryClient.removeQueries({ queryKey: ['/api/news'] });
-      
+
       // Build API URL with location and category filter
       let apiUrl = `/api/news/location-fresh?lat=${lat}&lng=${lng}`;
       if (activeFilter) {
         apiUrl += `&category=${activeFilter}`;
       }
-      
+
       console.log(`🔄 Fetching fresh ${activeFilter || 'general'} news for this location...`);
-      
+
       const response = await fetch(apiUrl);
       const locationNews = await response.json();
-      
+
       if (locationNews.length > 0) {
         console.log(`✅ Created ${locationNews.length} news markers at clicked location`);
-        
+
         // Center map on clicked location
         setMapCenter([lat, lng]);
         setMapZoom(Math.max(mapZoom, 10));
-        
+
         // Force refresh the map with new location-based news
         await queryClient.invalidateQueries({ queryKey: ['/api/news'] });
-        
+
         // Show the first article found
         setSelectedArticle(locationNews[0]);
         setIsNewsVisible(true);
-        
+
       } else {
         console.log('📍 Creating placeholder marker - no specific news found for this exact location');
         // Still center the map and show that we tried

@@ -11,7 +11,8 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSearch(query);
+    console.log('🔍 Search form submitted with query:', query);
+    onSearch(query.trim());
   };
 
   const handleClear = () => {

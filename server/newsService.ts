@@ -112,7 +112,7 @@ class NewsService {
   private getCoordinatesForLocation(country: string[], description: string, title: string): { lat: number; lng: number; location: string } {
     // Try to extract city from title or description
     const text = `${title} ${description}`.toLowerCase();
-    
+
     // Check for city mentions first (more specific)
     for (const [city, coords] of Object.entries(CITY_COORDINATES)) {
       if (text.includes(city)) {
@@ -132,11 +132,11 @@ class NewsService {
         // Smaller randomization within country bounds (±1 degree)
         const randomLat = coords.lat + (Math.random() - 0.5) * 2;
         const randomLng = coords.lng + (Math.random() - 0.5) * 2;
-        
+
         // Ensure coordinates stay within valid bounds
         const clampedLat = Math.max(-85, Math.min(85, randomLat));
         const clampedLng = Math.max(-180, Math.min(180, randomLng));
-        
+
         return { 
           lat: clampedLat, 
           lng: clampedLng, 
@@ -148,7 +148,7 @@ class NewsService {
     // Last resort - use major global cities as fallback
     const fallbackCities = Object.values(CITY_COORDINATES);
     const randomCity = fallbackCities[Math.floor(Math.random() * fallbackCities.length)];
-    
+
     return { 
       lat: randomCity.lat + (Math.random() - 0.5) * 0.1, // Very small offset
       lng: randomCity.lng + (Math.random() - 0.5) * 0.1,
@@ -186,7 +186,7 @@ class NewsService {
       "pe": "Peru",
       "cl": "Chile",
     };
-    
+
     return countryNames[countryCode] || countryCode.toUpperCase();
   }
 
@@ -196,7 +196,7 @@ class NewsService {
     }
 
     const cat = categories[0].toLowerCase();
-    
+
     // Check for breaking news keywords
     const isBreaking = categories.some(c => 
       c.toLowerCase().includes('breaking') || 
@@ -213,7 +213,7 @@ class NewsService {
     if (cat.includes('entertainment') || cat.includes('celebrity')) return { category: "ENTERTAINMENT", isBreaking };
     if (cat.includes('world') || cat.includes('international')) return { category: "WORLD", isBreaking };
     if (cat.includes('crime') || cat.includes('disaster')) return { category: "BREAKING", isBreaking: true };
-    
+
     return { category: "GENERAL", isBreaking };
   }
 
@@ -230,7 +230,7 @@ class NewsService {
       'HEALTH': 'health',
       'ENTERTAINMENT': 'entertainment'
     };
-    
+
     return categoryMap[userCategory.toUpperCase()] || userCategory.toLowerCase();
   }
 
@@ -242,7 +242,7 @@ class NewsService {
     try {
       // Build URL with safe parameters
       let url = `${this.baseUrl}?apikey=${this.apiKey}&language=en`;
-      
+
       // Add optional parameters safely
       if (query && query.length >= 3) {
         url += `&q=${encodeURIComponent(query.trim())}`;
@@ -254,11 +254,11 @@ class NewsService {
       } else if (country && country.length === 2) {
         url += `&country=${country.toLowerCase()}`;
       }
-      
+
       console.log('Fetching news from:', url.replace(this.apiKey, 'API_KEY_HIDDEN'));
-      
+
       const response = await fetch(url);
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`NewsData.io API error: ${response.status} ${response.statusText}`, errorText);
@@ -266,11 +266,11 @@ class NewsService {
       }
 
       const data: NewsDataResponse = await response.json();
-      
+
       return data.results.map((article, index) => {
         const coords = this.getCoordinatesForLocation(article.country, article.description, article.title);
         const categoryInfo = this.mapCategory(article.category);
-        
+
         return {
           id: index + 1,
           title: article.title,
@@ -348,9 +348,104 @@ class NewsService {
       "singapore": "sg",
       "hong kong": "hk"
     };
-    
+
     return countryMap[country.toLowerCase()] || "us";
   }
 }
 
 export const newsService = new NewsService();
+
+// The following code was added to implement search functionality
+
+const API_KEY = process.env.NEWSDATA_API_KEY;
+const NEWSDATA_API_URL = "https://newsdata.io/api/1/news";
+
+// Helper function to shuffle array (Fisher-Yates shuffle)
+function shuffleArray<T>(array: T[]): T[] {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+// Mock function for getting trending news (replace with actual implementation)
+export async function getTrendingNews(limit: number = 10): Promise<NewsArticle[]> {
+  console.log('🔥 Getting trending news (mock)');
+
+  const allNews: NewsArticle[] = [];
+
+  return shuffleArray(allNews).slice(0, limit);
+}
+
+// Function to search for news articles
+export async function searchNews(query: string): Promise<NewsArticle[]> {
+  console.log('🔍 Searching news for query:', query);
+
+  try {
+    // Search using NewsData.io API with the query
+    const url = `${NEWSDATA_API_URL}?apikey=${API_KEY}&language=en&q=${encodeURIComponent(query)}`;
+    console.log('Fetching search results from:', url.replace(API_KEY, 'API_KEY_HIDDEN'));
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(`NewsData API error: ${response.status} - ${data.message || 'Unknown error'}`);
+    }
+
+    if (!data.results || !Array.isArray(data.results)) {
+      console.log('No search results found');
+      return [];
+    }
+
+    console.log(`📰 Found ${data.results.length} search results`);
+
+    const articles: NewsArticle[] = data.results
+      .slice(0, 20) // Limit to 20 search results
+      .map((article: NewsDataArticle, index: number) => {
+        // Get coordinates for the article location
+        const coords = getCoordinatesForLocation(article.country?.[0] || 'unknown');
+
+        // Determine category
+        let category = 'LOCAL';
+        if (article.category?.includes('top') || article.category?.includes('breaking')) {
+          category = 'BREAKING';
+        } else if (article.category?.includes('politics')) {
+          category = 'CIVIC';
+        } else if (article.category?.includes('sports')) {
+          category = 'SPORTS';
+        }
+
+        return {
+          id: Date.now() + index,
+          title: article.title,
+          summary: article.description || 'No summary available',
+          location: getLocationName(article.country?.[0] || 'Unknown'),
+          latitude: coords.lat,
+          longitude: coords.lng,
+          category,
+          publishedAt: new Date(article.pubDate),
+          sourceUrl: article.link,
+          isBreaking: category === 'BREAKING',
+          views: Math.floor(Math.random() * 1000) + 100
+        };
+      });
+
+    return articles;
+  } catch (error) {
+    console.error('Error searching news:', error);
+    throw error;
+  }
+}
+
+// Mock functions for location and category determination (replace with actual implementations)
+function getCoordinatesForLocation(countryCode: string): { lat: number; lng: number } {
+  // Mock implementation (replace with actual logic)
+  return { lat: 0, lng: 0 };
+}
+
+function getLocationName(countryCode: string): string {
+  // Mock implementation (replace with actual logic)
+  return 'Unknown';
+}
