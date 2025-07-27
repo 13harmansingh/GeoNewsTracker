@@ -139,6 +139,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Search news articles (MUST be before /api/news/:id)
+  app.get("/api/news/search", async (req, res) => {
+    try {
+      const { q } = req.query;
+      console.log('🔍 Search API called with query:', q);
+      
+      if (!q || typeof q !== 'string' || !q.trim()) {
+        console.log('❌ Invalid search query, returning empty array');
+        return res.json([]);
+      }
+
+      const searchQuery = q.trim();
+      console.log('🔍 Processing search for:', searchQuery);
+
+      let articles;
+      try {
+        articles = await newsService.searchNews(searchQuery);
+        console.log('✅ Found', articles.length, 'articles from API search');
+      } catch (apiError) {
+        console.warn("Failed to search news from API, using local storage:", apiError);
+        const allArticles = await storage.getNewsArticles();
+        const searchTerm = searchQuery.toLowerCase();
+        
+        articles = allArticles.filter(article => 
+          article.title.toLowerCase().includes(searchTerm) ||
+          article.summary.toLowerCase().includes(searchTerm) ||
+          article.location.toLowerCase().includes(searchTerm) ||
+          article.category.toLowerCase().includes(searchTerm)
+        );
+        console.log('✅ Found', articles.length, 'articles from local search');
+      }
+
+      res.json(articles || []);
+    } catch (error) {
+      console.error('❌ Search error:', error);
+      res.json([]);
+    }
+  });
+
   // Get specific news article
   app.get("/api/news/:id", async (req, res) => {
     try {
