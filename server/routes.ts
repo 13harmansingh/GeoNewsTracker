@@ -26,21 +26,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/news/location-fresh", async (req, res) => {
     try {
       const { lat, lng, category } = req.query;
-      
+
       if (!lat || !lng) {
         return res.status(400).json({ message: "Latitude and longitude required" });
       }
 
       const latitude = parseFloat(lat as string);
       const longitude = parseFloat(lng as string);
-      
+
       if (isNaN(latitude) || isNaN(longitude)) {
         return res.status(400).json({ message: "Invalid coordinates" });
       }
 
       // Clear any cached results to prevent mixing
       console.log(`🗑️ Clearing cache for fresh location request at ${latitude}, ${longitude}`);
-      
+
       let articles;
       try {
         // Get fresh news based on category if provided
@@ -59,7 +59,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const randomOffset = 0.05; // Small random offset
         const offsetLat = latitude + (Math.random() - 0.5) * randomOffset;
         const offsetLng = longitude + (Math.random() - 0.5) * randomOffset;
-        
+
         return {
           ...article,
           id: Date.now() + index, // Unique ID to prevent conflicts
@@ -81,7 +81,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/news/location", async (req, res) => {
     try {
       const { lat, lng, radius, country } = req.query;
-      
+
       let articles;
       try {
         if (country && typeof country === 'string') {
@@ -90,12 +90,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else {
           // Get worldwide news and filter by location if coordinates provided
           articles = await newsService.fetchWorldwideNews();
-          
+
           if (lat && lng) {
             const latitude = parseFloat(lat as string);
             const longitude = parseFloat(lng as string);
             const searchRadius = radius ? parseFloat(radius as string) : 5; // 5 degrees default
-            
+
             if (!isNaN(latitude) && !isNaN(longitude)) {
               articles = articles.filter(article => {
                 const distance = Math.sqrt(
@@ -112,7 +112,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const latitude = lat ? parseFloat(lat as string) : 0;
         const longitude = lng ? parseFloat(lng as string) : 0;
         const searchRadius = radius ? parseFloat(radius as string) : 0.01;
-        
+
         articles = await storage.getNewsArticlesByLocation(latitude, longitude, searchRadius);
       }
 
@@ -154,49 +154,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Increment view count
       await storage.incrementViews(id);
-      
+
       res.json(article);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch article" });
-    }
-  });
-
-  // Search news articles
-  app.get("/api/news/search", async (req, res) => {
-    try {
-      const { q } = req.query;
-      console.log('🔍 Search API called with query:', q);
-      
-      if (!q || typeof q !== 'string' || !q.trim()) {
-        console.log('❌ Invalid search query, returning empty array');
-        return res.json([]);
-      }
-
-      const searchQuery = q.trim();
-      console.log('🔍 Processing search for:', searchQuery);
-
-      let articles;
-      try {
-        articles = await newsService.searchNews(searchQuery);
-        console.log('✅ Found', articles.length, 'articles from API search');
-      } catch (apiError) {
-        console.warn("Failed to search news from API, using local storage:", apiError);
-        const allArticles = await storage.getNewsArticles();
-        const searchTerm = searchQuery.toLowerCase();
-        
-        articles = allArticles.filter(article => 
-          article.title.toLowerCase().includes(searchTerm) ||
-          article.summary.toLowerCase().includes(searchTerm) ||
-          article.location.toLowerCase().includes(searchTerm) ||
-          article.category.toLowerCase().includes(searchTerm)
-        );
-        console.log('✅ Found', articles.length, 'articles from local search');
-      }
-
-      res.json(articles || []);
-    } catch (error) {
-      console.error('❌ Search error:', error);
-      res.json([]);
     }
   });
 
