@@ -135,10 +135,10 @@ class NewsService {
   }
 
   private getCoordinatesForLocation(country: string[], description: string, title: string, aiRegion?: string): { lat: number; lng: number; location: string } {
-    // Small clustering offset to prevent exact overlap (±0.1 degrees ≈ 11km)
+    // Very small clustering offset to prevent exact overlap (±0.01 degrees ≈ 1km)
     const clusterOffset = () => ({
-      lat: (Math.random() - 0.5) * 0.2,
-      lng: (Math.random() - 0.5) * 0.2
+      lat: (Math.random() - 0.5) * 0.02,
+      lng: (Math.random() - 0.5) * 0.02
     });
 
     // Combine all text sources for location extraction
@@ -171,7 +171,7 @@ class NewsService {
       }
     }
 
-    // Default to global news center (Greenwich, UK) with offset
+    // Default to global news center (Greenwich, UK) with small offset
     const offset = clusterOffset();
     return { 
       lat: 51.4826 + offset.lat, 
