@@ -134,19 +134,24 @@ class NewsService {
     }
   }
 
-  private getCoordinatesForLocation(country: string[], description: string, title: string): { lat: number; lng: number; location: string } {
-    // Combine title and description for better location extraction
-    const text = `${title} ${description}`.toLowerCase();
+  private getCoordinatesForLocation(country: string[], description: string, title: string, aiRegion?: string): { lat: number; lng: number; location: string } {
+    // Small clustering offset to prevent exact overlap (±0.1 degrees ≈ 11km)
+    const clusterOffset = () => ({
+      lat: (Math.random() - 0.5) * 0.2,
+      lng: (Math.random() - 0.5) * 0.2
+    });
+
+    // Combine all text sources for location extraction
+    const text = `${title} ${description} ${aiRegion || ''}`.toLowerCase();
 
     // Check for city mentions first (most specific)
     for (const [city, coords] of Object.entries(CITY_COORDINATES)) {
-      // Use word boundaries to avoid partial matches
       const cityPattern = new RegExp(`\\b${city}\\b`, 'i');
       if (cityPattern.test(text)) {
-        // Use exact coordinates for cities - no randomization
+        const offset = clusterOffset();
         return { 
-          lat: coords.lat, 
-          lng: coords.lng, 
+          lat: coords.lat + offset.lat, 
+          lng: coords.lng + offset.lng, 
           location: city.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
         };
       }
@@ -157,19 +162,20 @@ class NewsService {
       const countryCode = country[0].toLowerCase();
       const coords = COUNTRY_COORDINATES[countryCode];
       if (coords) {
-        // Use exact country center - no randomization
+        const offset = clusterOffset();
         return { 
-          lat: coords.lat, 
-          lng: coords.lng, 
+          lat: coords.lat + offset.lat, 
+          lng: coords.lng + offset.lng, 
           location: this.getCountryName(countryCode)
         };
       }
     }
 
-    // Default to global news center (Greenwich, UK)
+    // Default to global news center (Greenwich, UK) with offset
+    const offset = clusterOffset();
     return { 
-      lat: 51.4826, 
-      lng: -0.0077, 
+      lat: 51.4826 + offset.lat, 
+      lng: -0.0077 + offset.lng, 
       location: "Global"
     };
   }
@@ -286,7 +292,13 @@ class NewsService {
       const data: NewsDataResponse = await response.json();
 
       return data.results.map((article, index) => {
-        const coords = this.getCoordinatesForLocation(article.country, article.description, article.title);
+        // Use AI region tag if available for better location accuracy
+        const coords = this.getCoordinatesForLocation(
+          article.country, 
+          article.description, 
+          article.title,
+          article.ai_region
+        );
         const categoryInfo = this.mapCategory(article.category);
 
         return {
