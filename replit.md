@@ -24,14 +24,21 @@ Preferred communication style: Simple, everyday language.
 - **Runtime**: Node.js with ES modules
 - **Database**: PostgreSQL with Drizzle ORM
 - **Database Provider**: Neon Database (@neondatabase/serverless)
+- **Authentication**: Replit Auth with OpenID Connect (Passport.js)
+- **Session Management**: PostgreSQL-backed sessions with connect-pg-simple
 - **Development**: In-memory storage fallback for development
 
 ## Key Components
 
 ### Data Layer
 - **Schema**: Shared TypeScript schemas using Drizzle ORM and Zod validation
-- **Tables**: Users and NewsArticles with geographic coordinates
-- **Storage Interface**: Abstract storage layer with memory-based implementation for development
+- **Tables**: 
+  - Users (varchar ID with UUID for Replit Auth)
+  - Sessions (for session storage)
+  - NewsArticles with geographic coordinates
+- **Storage Interface**: Abstract storage layer with dual implementation:
+  - DatabaseStorage for production (when DATABASE_URL is available)
+  - MemStorage for development (fallback when database not configured)
 
 ### Frontend Components
 - **Interactive Map**: Full-screen map with custom markers for news articles
@@ -42,9 +49,16 @@ Preferred communication style: Simple, everyday language.
 - **Map Controls**: Zoom and location centering controls
 
 ### API Endpoints
+**News Endpoints:**
 - `GET /api/news` - Fetch all news articles
 - `GET /api/news/location` - Location-based news filtering
 - `GET /api/news/category/:category` - Category-filtered news
+
+**Authentication Endpoints:**
+- `GET /api/login` - Initiate Replit Auth login flow
+- `GET /api/logout` - Logout and end session
+- `GET /api/callback` - OAuth callback handler
+- `GET /api/auth/user` - Get current authenticated user (protected)
 
 ## Data Flow
 
@@ -95,7 +109,25 @@ Preferred communication style: Simple, everyday language.
 - **Location-based News**: Click map areas to discover regional news coverage
 - **Mobile-first Design**: Touch-optimized iOS-style interactions and controls
 
-## Recent Changes (July 21, 2025)
+## Recent Changes
+
+### October 9, 2025 - Authentication Integration
+- ✅ Integrated Replit Auth with OpenID Connect for user authentication
+- ✅ Added session management with PostgreSQL-backed sessions
+- ✅ Implemented conditional auth setup - gracefully handles missing environment variables
+- ✅ Created landing page for unauthenticated users
+- ✅ Added logout functionality to navigation bar
+- ✅ Implemented dual storage system - DatabaseStorage with MemStorage fallback
+- ✅ Updated database schema with users and sessions tables for auth
+- ✅ Added useAuth React hook for authentication state management
+
+**Authentication Flow:**
+- Logged-out users see a landing page with login button
+- Logged-in users access the interactive news map
+- Sessions stored in PostgreSQL for persistence
+- Graceful fallback when auth environment variables not configured
+
+### July 21, 2025 - News API Integration
 - ✅ Integrated NewsData.io API for authentic worldwide news coverage
 - ✅ Fixed source URL functionality with proper error handling and visual states
 - ✅ Added click-to-fetch area news with geographic coordinate system
@@ -105,4 +137,4 @@ Preferred communication style: Simple, everyday language.
 - ✅ Updated UI positioning for premium, professional appearance
 - ✅ Added fallback system that gracefully handles API rate limits
 
-The application now provides authentic global news coverage with proper source attribution and external link functionality, meeting the requirements for real-world news distribution.
+The application now provides authentic global news coverage with user authentication, proper source attribution, and external link functionality.

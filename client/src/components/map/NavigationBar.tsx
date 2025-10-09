@@ -1,4 +1,4 @@
-import { Menu, User } from "lucide-react";
+import { Menu, LogOut } from "lucide-react";
 
 export default function NavigationBar() {
   const handleMenuClick = () => {
@@ -6,9 +6,8 @@ export default function NavigationBar() {
     console.log("Menu clicked");
   };
 
-  const handleProfileClick = () => {
-    // TODO: Implement profile functionality
-    console.log("Profile clicked");
+  const handleLogoutClick = () => {
+    window.location.href = "/api/logout";
   };
 
   return (
@@ -30,10 +29,11 @@ export default function NavigationBar() {
           </div>
 
           <button 
-            onClick={handleProfileClick}
+            onClick={handleLogoutClick}
             className="touch-feedback p-3 rounded-2xl hover:bg-white hover:bg-opacity-15 transition-all duration-200"
+            data-testid="button-logout"
           >
-            <User className="w-5 h-5 text-gray-800" />
+            <LogOut className="w-5 h-5 text-gray-800" />
           </button>
         </div>
       </div>
