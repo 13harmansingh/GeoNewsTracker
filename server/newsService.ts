@@ -36,35 +36,60 @@ interface NewsDataArticle {
 
 // Geocoding data for major cities worldwide
 const CITY_COORDINATES: Record<string, { lat: number; lng: number; country: string }> = {
-  // Major global cities
+  // North America
   "new york": { lat: 40.7128, lng: -74.0060, country: "US" },
-  "london": { lat: 51.5074, lng: -0.1278, country: "GB" },
-  "tokyo": { lat: 35.6762, lng: 139.6503, country: "JP" },
-  "paris": { lat: 48.8566, lng: 2.3522, country: "FR" },
-  "moscow": { lat: 55.7558, lng: 37.6176, country: "RU" },
-  "beijing": { lat: 39.9042, lng: 116.4074, country: "CN" },
-  "sydney": { lat: -33.8688, lng: 151.2093, country: "AU" },
+  "los angeles": { lat: 34.0522, lng: -118.2437, country: "US" },
+  "chicago": { lat: 41.8781, lng: -87.6298, country: "US" },
+  "washington": { lat: 38.9072, lng: -77.0369, country: "US" },
   "toronto": { lat: 43.6532, lng: -79.3832, country: "CA" },
-  "mumbai": { lat: 19.0760, lng: 72.8777, country: "IN" },
+  "mexico city": { lat: 19.4326, lng: -99.1332, country: "MX" },
+  
+  // Europe
+  "london": { lat: 51.5074, lng: -0.1278, country: "GB" },
+  "paris": { lat: 48.8566, lng: 2.3522, country: "FR" },
   "berlin": { lat: 52.5200, lng: 13.4050, country: "DE" },
   "madrid": { lat: 40.4168, lng: -3.7038, country: "ES" },
   "rome": { lat: 41.9028, lng: 12.4964, country: "IT" },
-  "brazil": { lat: -14.2350, lng: -51.9253, country: "BR" },
-  "mexico": { lat: 23.6345, lng: -102.5528, country: "MX" },
-  "singapore": { lat: 1.3521, lng: 103.8198, country: "SG" },
+  "moscow": { lat: 55.7558, lng: 37.6176, country: "RU" },
+  "amsterdam": { lat: 52.3676, lng: 4.9041, country: "NL" },
+  "brussels": { lat: 50.8503, lng: 4.3517, country: "BE" },
+  "vienna": { lat: 48.2082, lng: 16.3738, country: "AT" },
+  "stockholm": { lat: 59.3293, lng: 18.0686, country: "SE" },
+  
+  // Asia
+  "tokyo": { lat: 35.6762, lng: 139.6503, country: "JP" },
+  "beijing": { lat: 39.9042, lng: 116.4074, country: "CN" },
+  "shanghai": { lat: 31.2304, lng: 121.4737, country: "CN" },
   "hong kong": { lat: 22.3193, lng: 114.1694, country: "HK" },
+  "singapore": { lat: 1.3521, lng: 103.8198, country: "SG" },
   "seoul": { lat: 37.5665, lng: 126.9780, country: "KR" },
+  "mumbai": { lat: 19.0760, lng: 72.8777, country: "IN" },
+  "delhi": { lat: 28.7041, lng: 77.1025, country: "IN" },
+  "bangkok": { lat: 13.7563, lng: 100.5018, country: "TH" },
+  "jakarta": { lat: -6.2088, lng: 106.8456, country: "ID" },
+  "manila": { lat: 14.5995, lng: 120.9842, country: "PH" },
   "dubai": { lat: 25.2048, lng: 55.2708, country: "AE" },
+  "tel aviv": { lat: 32.0853, lng: 34.7818, country: "IL" },
+  "jerusalem": { lat: 31.7683, lng: 35.2137, country: "IL" },
+  
+  // Middle East & Africa
   "cairo": { lat: 30.0444, lng: 31.2357, country: "EG" },
   "lagos": { lat: 6.5244, lng: 3.3792, country: "NG" },
   "johannesburg": { lat: -26.2041, lng: 28.0473, country: "ZA" },
   "istanbul": { lat: 41.0082, lng: 28.9784, country: "TR" },
-  "bangkok": { lat: 13.7563, lng: 100.5018, country: "TH" },
-  "jakarta": { lat: -6.2088, lng: 106.8456, country: "ID" },
-  "manila": { lat: 14.5995, lng: 120.9842, country: "PH" },
+  "nairobi": { lat: -1.2921, lng: 36.8219, country: "KE" },
+  
+  // South America
   "buenos aires": { lat: -34.6118, lng: -58.3960, country: "AR" },
   "lima": { lat: -12.0464, lng: -77.0428, country: "PE" },
   "santiago": { lat: -33.4489, lng: -70.6693, country: "CL" },
+  "sao paulo": { lat: -23.5505, lng: -46.6333, country: "BR" },
+  "rio de janeiro": { lat: -22.9068, lng: -43.1729, country: "BR" },
+  
+  // Oceania
+  "sydney": { lat: -33.8688, lng: 151.2093, country: "AU" },
+  "melbourne": { lat: -37.8136, lng: 144.9631, country: "AU" },
+  "auckland": { lat: -36.8485, lng: 174.7633, country: "NZ" },
 };
 
 // Country coordinates (center points)
@@ -110,12 +135,15 @@ class NewsService {
   }
 
   private getCoordinatesForLocation(country: string[], description: string, title: string): { lat: number; lng: number; location: string } {
-    // Try to extract city from title or description
+    // Combine title and description for better location extraction
     const text = `${title} ${description}`.toLowerCase();
 
-    // Check for city mentions first (more specific)
+    // Check for city mentions first (most specific)
     for (const [city, coords] of Object.entries(CITY_COORDINATES)) {
-      if (text.includes(city)) {
+      // Use word boundaries to avoid partial matches
+      const cityPattern = new RegExp(`\\b${city}\\b`, 'i');
+      if (cityPattern.test(text)) {
+        // Use exact coordinates for cities - no randomization
         return { 
           lat: coords.lat, 
           lng: coords.lng, 
@@ -124,34 +152,24 @@ class NewsService {
       }
     }
 
-    // Fallback to country coordinates with smaller randomization
+    // Use country coordinates if available
     if (country && country.length > 0) {
       const countryCode = country[0].toLowerCase();
       const coords = COUNTRY_COORDINATES[countryCode];
       if (coords) {
-        // Smaller randomization within country bounds (±1 degree)
-        const randomLat = coords.lat + (Math.random() - 0.5) * 2;
-        const randomLng = coords.lng + (Math.random() - 0.5) * 2;
-
-        // Ensure coordinates stay within valid bounds
-        const clampedLat = Math.max(-85, Math.min(85, randomLat));
-        const clampedLng = Math.max(-180, Math.min(180, randomLng));
-
+        // Use exact country center - no randomization
         return { 
-          lat: clampedLat, 
-          lng: clampedLng, 
+          lat: coords.lat, 
+          lng: coords.lng, 
           location: this.getCountryName(countryCode)
         };
       }
     }
 
-    // Last resort - use major global cities as fallback
-    const fallbackCities = Object.values(CITY_COORDINATES);
-    const randomCity = fallbackCities[Math.floor(Math.random() * fallbackCities.length)];
-
+    // Default to global news center (Greenwich, UK)
     return { 
-      lat: randomCity.lat + (Math.random() - 0.5) * 0.1, // Very small offset
-      lng: randomCity.lng + (Math.random() - 0.5) * 0.1,
+      lat: 51.4826, 
+      lng: -0.0077, 
       location: "Global"
     };
   }

@@ -72,20 +72,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         articles = await storage.getNewsArticles();
       }
 
-      // Create a small set of unique news items positioned near the clicked location
-      const uniqueNews = articles.slice(0, 3).map((article, index) => {
-        const randomOffset = 0.05; // Small random offset
-        const offsetLat = latitude + (Math.random() - 0.5) * randomOffset;
-        const offsetLng = longitude + (Math.random() - 0.5) * randomOffset;
-
-        return {
-          ...article,
-          id: Date.now() + index, // Unique ID to prevent conflicts
-          latitude: offsetLat,
-          longitude: offsetLng,
-          location: `Custom Location ${index + 1}`
-        };
-      });
+      // Return articles with their actual geocoded locations
+      const uniqueNews = articles.slice(0, 5).map((article, index) => ({
+        ...article,
+        id: Date.now() + index, // Unique ID to prevent conflicts
+      }));
 
       console.log(`Created ${uniqueNews.length} fresh news markers at ${latitude}, ${longitude} for category: ${category || 'all'}`);
       res.json(uniqueNews);
