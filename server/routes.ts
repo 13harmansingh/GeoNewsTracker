@@ -3,8 +3,26 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { newsService } from "./newsService";
 import { z } from "zod";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  await setupAuth(app);
+
+  app.get('/api/auth/user', async (req: any, res) => {
+    if (!req.isAuthenticated || !req.isAuthenticated()) {
+      return res.json(null);
+    }
+    
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
   // Get all news articles
   app.get("/api/news", async (req, res) => {
     try {
@@ -26,51 +44,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/news/location-fresh", async (req, res) => {
     try {
       const { lat, lng, category } = req.query;
-      
+
       if (!lat || !lng) {
         return res.status(400).json({ message: "Latitude and longitude required" });
       }
 
       const latitude = parseFloat(lat as string);
       const longitude = parseFloat(lng as string);
-      
+
       if (isNaN(latitude) || isNaN(longitude)) {
         return res.status(400).json({ message: "Invalid coordinates" });
       }
 
+      // Clear any cached results to prevent mixing
+      console.log(`🗑️ Clearing cache for fresh location request at ${latitude}, ${longitude}`);
+
       let articles;
       try {
-        // Fetch fresh news with category filter if provided
-        const categoryParam = category && typeof category === 'string' ? category.toLowerCase() : undefined;
-        articles = await newsService.fetchWorldwideNews(undefined, categoryParam);
-        
-        // Create location-specific versions of the articles
-        articles = articles.slice(0, 3).map((article, index) => ({
-          ...article,
-          id: Date.now() + index, // Unique ID for new markers
-          latitude: latitude + (Math.random() - 0.5) * 0.1, // Small random offset around clicked point
-          longitude: longitude + (Math.random() - 0.5) * 0.1,
-          location: `Custom Location ${index + 1}`,
-          isLocationCreated: true // Mark as user-created
-        }));
-
-        console.log(`Created ${articles.length} fresh news markers at ${latitude}, ${longitude} for category: ${categoryParam || 'all'}`);
-        
+        // Get fresh news based on category if provided
+        if (category && typeof category === 'string' && category.toLowerCase() !== 'all') {
+          articles = await newsService.getNewsByCategory(category);
+        } else {
+          articles = await newsService.fetchWorldwideNews();
+        }
       } catch (apiError) {
         console.warn("Failed to fetch fresh news, using local storage:", apiError);
         articles = await storage.getNewsArticles();
-        // Apply same location mapping for fallback data
-        articles = articles.slice(0, 3).map((article, index) => ({
-          ...article,
-          id: Date.now() + index,
-          latitude: latitude + (Math.random() - 0.5) * 0.1,
-          longitude: longitude + (Math.random() - 0.5) * 0.1,
-          location: `Custom Location ${index + 1}`,
-          isLocationCreated: true
-        }));
       }
 
-      res.json(articles);
+      // Create a small set of unique news items positioned near the clicked location
+      const uniqueNews = articles.slice(0, 3).map((article, index) => {
+        const randomOffset = 0.05; // Small random offset
+        const offsetLat = latitude + (Math.random() - 0.5) * randomOffset;
+        const offsetLng = longitude + (Math.random() - 0.5) * randomOffset;
+
+        return {
+          ...article,
+          id: Date.now() + index, // Unique ID to prevent conflicts
+          latitude: offsetLat,
+          longitude: offsetLng,
+          location: `Custom Location ${index + 1}`
+        };
+      });
+
+      console.log(`Created ${uniqueNews.length} fresh news markers at ${latitude}, ${longitude} for category: ${category || 'all'}`);
+      res.json(uniqueNews);
     } catch (error) {
       console.error("Error creating location markers:", error);
       res.status(500).json({ message: "Failed to create location markers" });
@@ -81,7 +99,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/news/location", async (req, res) => {
     try {
       const { lat, lng, radius, country } = req.query;
-      
+
       let articles;
       try {
         if (country && typeof country === 'string') {
@@ -90,12 +108,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else {
           // Get worldwide news and filter by location if coordinates provided
           articles = await newsService.fetchWorldwideNews();
-          
+
           if (lat && lng) {
             const latitude = parseFloat(lat as string);
             const longitude = parseFloat(lng as string);
             const searchRadius = radius ? parseFloat(radius as string) : 5; // 5 degrees default
-            
+
             if (!isNaN(latitude) && !isNaN(longitude)) {
               articles = articles.filter(article => {
                 const distance = Math.sqrt(
@@ -112,7 +130,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const latitude = lat ? parseFloat(lat as string) : 0;
         const longitude = lng ? parseFloat(lng as string) : 0;
         const searchRadius = radius ? parseFloat(radius as string) : 0.01;
-        
+
         articles = await storage.getNewsArticlesByLocation(latitude, longitude, searchRadius);
       }
 
@@ -139,6 +157,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Search news articles (MUST be before /api/news/:id)
+  app.get("/api/news/search", async (req, res) => {
+    try {
+      const { q } = req.query;
+      console.log('🔍 Search API called with query:', q);
+      
+      if (!q || typeof q !== 'string' || !q.trim()) {
+        console.log('❌ Invalid search query, returning empty array');
+        return res.json([]);
+      }
+
+      const searchQuery = q.trim();
+      console.log('🔍 Processing search for:', searchQuery);
+
+      let articles;
+      try {
+        articles = await newsService.searchNews(searchQuery);
+        console.log('✅ Found', articles.length, 'articles from API search');
+      } catch (apiError) {
+        console.warn("Failed to search news from API, using local storage:", apiError);
+        const allArticles = await storage.getNewsArticles();
+        const searchTerm = searchQuery.toLowerCase();
+        
+        articles = allArticles.filter(article => 
+          article.title.toLowerCase().includes(searchTerm) ||
+          article.summary.toLowerCase().includes(searchTerm) ||
+          article.location.toLowerCase().includes(searchTerm) ||
+          article.category.toLowerCase().includes(searchTerm)
+        );
+        console.log('✅ Found', articles.length, 'articles from local search');
+      }
+
+      res.json(articles || []);
+    } catch (error) {
+      console.error('❌ Search error:', error);
+      res.json([]);
+    }
+  });
+
   // Get specific news article
   app.get("/api/news/:id", async (req, res) => {
     try {
@@ -154,40 +211,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Increment view count
       await storage.incrementViews(id);
-      
+
       res.json(article);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch article" });
-    }
-  });
-
-  // Search news articles
-  app.get("/api/news/search", async (req, res) => {
-    try {
-      const { q } = req.query;
-      if (!q || typeof q !== 'string') {
-        return res.status(400).json({ message: "Search query is required" });
-      }
-
-      let articles;
-      try {
-        articles = await newsService.searchNews(q);
-      } catch (apiError) {
-        console.warn("Failed to search news from API, using local storage:", apiError);
-        const allArticles = await storage.getNewsArticles();
-        const searchTerm = q.toLowerCase();
-        
-        articles = allArticles.filter(article => 
-          article.title.toLowerCase().includes(searchTerm) ||
-          article.summary.toLowerCase().includes(searchTerm) ||
-          article.location.toLowerCase().includes(searchTerm) ||
-          article.category.toLowerCase().includes(searchTerm)
-        );
-      }
-
-      res.json(articles);
-    } catch (error) {
-      res.status(500).json({ message: "Search failed" });
     }
   });
 
