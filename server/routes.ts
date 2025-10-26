@@ -41,17 +41,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper function to try multiple news providers
+  async function fetchNewsWithFallback() {
+    // Try NewsData.io first
+    try {
+      const articles = await newsService.fetchWorldwideNews();
+      console.log('✅ Fetched news from NewsData.io');
+      return articles;
+    } catch (newsDataError) {
+      console.warn("NewsData.io failed, trying NewsAPI.org fallback:", newsDataError);
+      
+      // Try NewsAPI.org as fallback
+      try {
+        const newsApiArticles = await newsAPIService.getTopHeadlinesByCountry('us');
+        console.log('✅ Fetched news from NewsAPI.org fallback');
+        return newsApiArticles;
+      } catch (newsApiError) {
+        console.warn("NewsAPI.org also failed, using local storage:", newsApiError);
+        
+        // Last resort: database
+        return await storage.getNewsArticles();
+      }
+    }
+  }
+
   // Get all news articles
   app.get("/api/news", async (req, res) => {
     try {
-      // Try to get real worldwide news first, fallback to local storage
-      let articles;
-      try {
-        articles = await newsService.fetchWorldwideNews();
-      } catch (apiError) {
-        console.warn("Failed to fetch from news API, using local storage:", apiError);
-        articles = await storage.getNewsArticles();
-      }
+      const articles = await fetchNewsWithFallback();
       res.json(articles);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch news articles" });
@@ -81,12 +98,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         // Get fresh news based on category if provided
         if (category && typeof category === 'string' && category.toLowerCase() !== 'all') {
-          articles = await newsService.getNewsByCategory(category);
+          try {
+            articles = await newsService.getNewsByCategory(category);
+          } catch (newsDataError) {
+            console.warn("NewsData.io failed, trying NewsAPI.org fallback");
+            articles = await newsAPIService.getTopHeadlinesByCountry('us');
+          }
         } else {
-          articles = await newsService.fetchWorldwideNews();
+          articles = await fetchNewsWithFallback();
         }
       } catch (apiError) {
-        console.warn("Failed to fetch fresh news, using local storage:", apiError);
+        console.warn("All APIs failed, using local storage:", apiError);
         articles = await storage.getNewsArticles();
       }
 
@@ -122,10 +144,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         if (country && typeof country === 'string') {
           // Fetch news by country if provided
-          articles = await newsService.getNewsByCountry(country);
+          try {
+            articles = await newsService.getNewsByCountry(country);
+          } catch (newsDataError) {
+            console.warn("NewsData.io failed, trying NewsAPI.org fallback");
+            const countryCode = country.length === 2 ? country : 'us';
+            articles = await newsAPIService.getTopHeadlinesByCountry(countryCode);
+          }
         } else {
           // Get worldwide news and filter by location if coordinates provided
-          articles = await newsService.fetchWorldwideNews();
+          articles = await fetchNewsWithFallback();
 
           if (lat && lng) {
             const latitude = parseFloat(lat as string);
@@ -144,7 +172,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
       } catch (apiError) {
-        console.warn("Failed to fetch location news from API, using local storage:", apiError);
+        console.warn("All APIs failed, using local storage:", apiError);
         const latitude = lat ? parseFloat(lat as string) : 0;
         const longitude = lng ? parseFloat(lng as string) : 0;
         const searchRadius = radius ? parseFloat(radius as string) : 0.01;
@@ -164,9 +192,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { category } = req.params;
       let articles;
       try {
-        articles = await newsService.getNewsByCategory(category);
+        try {
+          articles = await newsService.getNewsByCategory(category);
+        } catch (newsDataError) {
+          console.warn("NewsData.io failed, trying NewsAPI.org fallback");
+          articles = await newsAPIService.getTopHeadlinesByCountry('us');
+        }
       } catch (apiError) {
-        console.warn("Failed to fetch category news from API, using local storage:", apiError);
+        console.warn("All APIs failed, using local storage:", apiError);
         articles = await storage.getNewsArticlesByCategory(category);
       }
       res.json(articles);
