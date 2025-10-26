@@ -45,7 +45,7 @@ Preferred communication style: Simple, everyday language.
 - **News Panel**: Sliding panel for article details with loading states
 - **Navigation Bar**: Top navigation with glassmorphism design
 - **Search Bar**: Real-time search with debouncing
-- **Action Bar**: Category filters (Breaking, Local, Sports, Weather)
+- **Action Bar**: Category filters (My Pins, Global, Trending, Recent)
 - **Map Controls**: Zoom and location centering controls
 
 ### API Endpoints
@@ -110,6 +110,33 @@ Preferred communication style: Simple, everyday language.
 - **Mobile-first Design**: Touch-optimized iOS-style interactions and controls
 
 ## Recent Changes
+
+### October 26, 2025 - Night Session: EIC Grant Demo Preparation
+- ✅ **Removed Pro Upgrade System**: Deleted dashboard page, subscription logic, Stripe integration, ProUpgradeButton component
+- ✅ **Authentication Required**: Users must login to access map - Landing page shown to unauthenticated users
+- ✅ **Database Cleanup**: Deleted all 21 demo/seeded articles from PostgreSQL database
+- ✅ **Worldwide News**: NewsAPI now fetches from 13 countries (US, UK, India, Australia, Japan, Brazil, South Africa, UAE, Mexico, Singapore, Russia, Germany, France)
+- ✅ **Distinct User Pins**: User-created pins use purple gradient background, white star icon, and purple indicator dot
+- ✅ **Category Rename**: Changed from BREAKING/LOCAL/SPORTS/WEATHER to MY_PINS/GLOBAL/TRENDING/RECENT
+- ✅ **Category Filtering Updated**: MY_PINS shows user-created articles only, GLOBAL shows API news, TRENDING by views, RECENT by date
+- ✅ **Simplified Navigation**: Removed dashboard link, kept only logout button in NavigationBar
+
+**Technical Implementation:**
+- App.tsx: Added authentication gate - redirects to Landing page if !user
+- InteractiveMap.tsx: User-created pins styled with purple gradient and star icon when isUserCreated === true
+- ActionBar.tsx: New categories with updated icons (Star, Globe, TrendingUp, Clock)
+- NavigationBar.tsx: Removed dashboard route and button
+- routes.ts: Removed Stripe endpoints (/api/create-checkout, /api/pro/status), updated category filtering logic
+- newsApiService.ts: Worldwide news from 13 countries with proper fallback system
+- BiasAnalysisForm.tsx & OwnershipChart.tsx: Removed Pro upgrade prompts and imports
+
+**User Impact:**
+- Login required → All users must authenticate to access map
+- No Pro paywall → All AI features available to authenticated users
+- User pins → Visually distinct purple markers vs blue API markers
+- Clean database → No demo articles, only real news and user-created pins
+- Worldwide coverage → News from 13 countries instead of just US
+- Better categories → MY PINS/GLOBAL/TRENDING/RECENT instead of generic news categories
 
 ### October 26, 2025 - Evening Session: Persistent Pins & AI Improvements
 - ✅ **Worldwide News Distribution**: Fixed initial map load to show database articles globally (San Francisco, Brooklyn, London, Tokyo, Paris, Sydney)
