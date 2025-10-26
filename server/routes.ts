@@ -151,8 +151,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         articles = Array.from({ length: 5 }, (_, i) => {
           const loc = locations[i];
+          // Use negative IDs for mock articles (safe integer range)
+          const mockId = -(now % 1000000000 + i * 10000);
           return {
-            id: now + i,
+            id: mockId,
             title: mockTitles[i],
             summary: `Latest news from ${loc.name}: ${mockTitles[i]}`,
             content: `This is breaking news from ${loc.name}.`,
@@ -178,15 +180,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Take up to 5 diverse articles and position them near the clicked location
       // Generate unique IDs to prevent duplicate markers
+      // Use negative IDs for ephemeral articles to avoid conflicts with database IDs
       const locationArticles = articles.slice(0, 5).map((article, index) => {
         const randomOffset = 0.02;
         const offsetLat = latitude + (Math.random() - 0.5) * randomOffset;
         const offsetLng = longitude + (Math.random() - 0.5) * randomOffset;
         const timestamp = Date.now();
+        
+        // Use negative IDs for ephemeral articles (safe range: -2147483648 to -1)
+        // Generate unique negative ID: -(timestamp % 1000000000 + index)
+        const uniqueId = -(timestamp % 1000000000 + index * 1000);
 
         return {
           ...article,
-          id: timestamp + index, // Unique ID for each location-based article
+          id: uniqueId, // Negative ID for ephemeral articles
           latitude: offsetLat,
           longitude: offsetLng,
           isUserCreated: false,
