@@ -454,9 +454,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/bias", isAuthenticated, async (req: any, res) => {
+  app.post("/api/bias", async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      // Get user ID if authenticated, otherwise null (demo mode)
+      const userId = (req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub) || null;
       const data = insertBiasAnalysisSchema.parse({
         ...req.body,
         taggedBy: userId
@@ -464,16 +465,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const analysis = await storage.createBiasAnalysis(data);
       res.json(analysis);
     } catch (error) {
+      console.error("Error creating bias analysis:", error);
       res.status(400).json({ message: "Invalid bias analysis data" });
     }
   });
 
-  app.patch("/api/bias/:id", isAuthenticated, async (req, res) => {
+  app.patch("/api/bias/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const analysis = await storage.updateBiasAnalysis(id, req.body);
       res.json(analysis);
     } catch (error) {
+      console.error("Error updating bias analysis:", error);
       res.status(500).json({ message: "Failed to update bias analysis" });
     }
   });

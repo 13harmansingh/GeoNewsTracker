@@ -29,13 +29,13 @@ export function BiasAnalysisForm({ article, isPro }: BiasAnalysisFormProps) {
   });
 
   const saveMutation = useMutation({
-    mutationFn: async (tag: BiasTag) => {
+    mutationFn: async (payload: { tag: BiasTag; aiData?: { prediction: BiasTag; confidence: number; summary: string } }) => {
       const response = await apiRequest("POST", "/api/bias", {
         articleId: article.id,
-        manualTag: tag,
-        aiPrediction: aiResult?.prediction,
-        aiConfidence: aiResult?.confidence,
-        aiSummary: aiResult?.summary,
+        manualTag: payload.tag,
+        aiPrediction: payload.aiData?.prediction || aiResult?.prediction,
+        aiConfidence: payload.aiData?.confidence || aiResult?.confidence,
+        aiSummary: payload.aiData?.summary || aiResult?.summary,
       });
       return await response.json();
     },
@@ -64,6 +64,12 @@ export function BiasAnalysisForm({ article, isPro }: BiasAnalysisFormProps) {
       const data = await response.json();
       setAiResult(data);
       setSelectedTag(data.prediction);
+
+      // Auto-save when confidence > 75%
+      if (data.confidence > 0.75) {
+        console.log(`🤖 Auto-applying bias tag "${data.prediction}" with ${(data.confidence * 100).toFixed(0)}% confidence`);
+        saveMutation.mutate({ tag: data.prediction, aiData: data });
+      }
     } catch (error) {
       toast({
         title: "AI Analysis Failed",
@@ -76,7 +82,16 @@ export function BiasAnalysisForm({ article, isPro }: BiasAnalysisFormProps) {
   };
 
   useEffect(() => {
-    if (isPro && !existingAnalysis && !aiResult) {
+    // Load cached AI result from existing analysis
+    if (existingAnalysis && existingAnalysis.aiPrediction) {
+      setAiResult({
+        prediction: existingAnalysis.aiPrediction as BiasTag,
+        confidence: existingAnalysis.aiConfidence || 0,
+        summary: existingAnalysis.aiSummary || "",
+      });
+      setSelectedTag(existingAnalysis.manualTag as BiasTag || existingAnalysis.aiPrediction as BiasTag);
+    } else if (isPro && !existingAnalysis && !aiResult) {
+      // Run AI analysis if no cached data
       runAIAnalysis();
     }
   }, [isPro, existingAnalysis]);
@@ -202,7 +217,7 @@ export function BiasAnalysisForm({ article, isPro }: BiasAnalysisFormProps) {
       </div>
 
       <Button
-        onClick={() => selectedTag && saveMutation.mutate(selectedTag)}
+        onClick={() => selectedTag && saveMutation.mutate({ tag: selectedTag })}
         disabled={!selectedTag || saveMutation.isPending}
         className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white mt-4 touch-feedback"
         data-testid="button-save-analysis"
