@@ -123,6 +123,16 @@
     filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
   }
 
+  /* Map Ocean Background */
+  .bg-ocean {
+    background-color: #AAD3DF;
+  }
+
+  /* Leaflet container ocean background */
+  .leaflet-container {
+    background-color: #AAD3DF !important;
+  }
+
   /* Premium Animations */
   .animate-slide-up {
     animation: slideUp 0.3s ease-out;
