@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import MapPage from "@/pages/map";
 import Landing from "@/pages/landing";
+import DashboardPage from "@/pages/dashboard";
 
 function Router() {
   const { user, isLoading } = useAuth();
@@ -22,6 +23,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={MapPage} />
+      <Route path="/dashboard" component={DashboardPage} />
       <Route component={NotFound} />
     </Switch>
   );
