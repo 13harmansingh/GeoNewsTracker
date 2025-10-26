@@ -111,6 +111,29 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### October 26, 2025 - Seamless Consumer UX Enhancement
+- ✅ Created ArticleExperienceContext for centralized article state management
+- ✅ Integrated Pro features directly into NewsPanel as vertical stack (not separate dashboard)
+- ✅ Redesigned Pro features with iOS 26 light mode styling (BiasAnalysisForm, OwnershipChart)
+- ✅ Made related articles clickable - switch article context without closing drawer
+- ✅ Added hover tooltip preview for map markers (headline + category + time)
+- ✅ Fixed Stripe 401 error - made /api/pro/status public endpoint
+- ✅ Seeded PostgreSQL database with 6 sample articles for development/testing
+- ✅ End-to-end testing confirms seamless consumer journey works perfectly
+
+**Consumer Experience Flow:**
+- Hover marker → See tooltip preview (headline, category, timestamp)
+- Click marker → NewsPanel drawer slides in with article details
+- Scroll down → AI summary, bias analysis, ownership chart (with Pro upgrade CTAs)
+- Click related article → Switch to new article without closing drawer
+- All Pro features use iOS 26 light mode glassmorphism (not dark theme)
+
+**Architecture:**
+- ArticleExperienceContext manages selectedArticle, isPro, openArticle(), closeArticle()
+- NewsPanel vertical stack: article → AI summary → bias form → ownership chart → related articles
+- React Leaflet Tooltip component provides hover previews
+- Pro status endpoint gracefully handles unauthenticated users
+
 ### October 9, 2025 - Authentication Integration
 - ✅ Integrated Replit Auth with OpenID Connect for user authentication
 - ✅ Added session management with PostgreSQL-backed sessions
@@ -120,12 +143,6 @@ Preferred communication style: Simple, everyday language.
 - ✅ Implemented dual storage system - DatabaseStorage with MemStorage fallback
 - ✅ Updated database schema with users and sessions tables for auth
 - ✅ Added useAuth React hook for authentication state management
-
-**Authentication Flow:**
-- Logged-out users see a landing page with login button
-- Logged-in users access the interactive news map
-- Sessions stored in PostgreSQL for persistence
-- Graceful fallback when auth environment variables not configured
 
 ### July 21, 2025 - News API Integration
 - ✅ Integrated NewsData.io API for authentic worldwide news coverage
@@ -137,4 +154,4 @@ Preferred communication style: Simple, everyday language.
 - ✅ Updated UI positioning for premium, professional appearance
 - ✅ Added fallback system that gracefully handles API rate limits
 
-The application now provides authentic global news coverage with user authentication, proper source attribution, and external link functionality.
+The application now provides a seamless, iOS-inspired consumer experience with integrated Pro features, authentic global news coverage, user authentication, and interactive article discovery.
