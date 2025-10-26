@@ -57,32 +57,47 @@ class NewsAPIService {
   }
 
   async getWorldwideHeadlines(): Promise<NewsArticle[]> {
-    // Fetch US headlines and distribute them worldwide using WORLDWIDE_LOCATIONS
+    // Fetch headlines from multiple countries for true worldwide distribution
     if (!this.apiKey) {
       return this.getMockWorldwideHeadlines();
     }
 
     try {
-      const url = `${this.baseUrl}?country=us&pageSize=15&apiKey=${this.apiKey}`;
-      console.log(`Fetching headlines for worldwide distribution...`);
+      // Fetch from multiple countries for diverse worldwide coverage
+      const countries = ['us', 'gb', 'in', 'au', 'jp', 'br', 'za', 'ae', 'mx', 'sg', 'ru', 'de', 'fr'];
+      const articlesPerCountry = 1; // Fetch 1 article per country for variety
+      
+      console.log(`Fetching headlines from ${countries.length} countries for worldwide distribution...`);
+      
+      const allArticles: NewsAPIArticle[] = [];
+      
+      // Fetch from each country in parallel
+      const promises = countries.map(async (country) => {
+        try {
+          const url = `${this.baseUrl}?country=${country}&pageSize=${articlesPerCountry}&apiKey=${this.apiKey}`;
+          const response = await fetch(url);
+          
+          if (response.ok) {
+            const data: NewsAPIResponse = await response.json();
+            return data.articles || [];
+          }
+          return [];
+        } catch (error) {
+          console.warn(`Failed to fetch from ${country}:`, error);
+          return [];
+        }
+      });
+      
+      const results = await Promise.all(promises);
+      results.forEach(articles => allArticles.push(...articles));
 
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error(`NewsAPI error: ${response.status}`, errorData);
-        return this.getMockWorldwideHeadlines();
-      }
-
-      const data: NewsAPIResponse = await response.json();
-
-      if (!data.articles || data.articles.length === 0) {
-        console.warn(`No articles found`);
+      if (allArticles.length === 0) {
+        console.warn(`No articles found from any country`);
         return this.getMockWorldwideHeadlines();
       }
 
       // Distribute articles across worldwide locations
-      return data.articles.slice(0, WORLDWIDE_LOCATIONS.length).map((article, index) => {
+      return allArticles.slice(0, WORLDWIDE_LOCATIONS.length).map((article, index) => {
         const location = WORLDWIDE_LOCATIONS[index];
         const randomOffset = 0.5;
         const lat = location.lat + (Math.random() - 0.5) * randomOffset;
@@ -106,6 +121,8 @@ class NewsAPIService {
           country: location.region,
           language: "en",
           externalId: `newsapi-worldwide-${Date.now()}-${index}`,
+          userId: null,
+          isUserCreated: false,
         } as NewsArticle;
       });
 
@@ -154,6 +171,8 @@ class NewsAPIService {
         country: location.region,
         language: "en",
         externalId: `mock-worldwide-${index}`,
+        userId: null,
+        isUserCreated: false,
       };
     });
   }
@@ -211,6 +230,8 @@ class NewsAPIService {
           country: countryCode,
           language: "en",
           externalId: `newsapi-${Date.now()}-${index}`,
+          userId: null,
+          isUserCreated: false,
         } as NewsArticle;
       });
 
@@ -268,6 +289,8 @@ class NewsAPIService {
       country: countryCode,
       language: "en",
       externalId: `mock-${countryCode}-${index}`,
+      userId: null,
+      isUserCreated: false,
     }));
   }
 }

@@ -3,9 +3,8 @@ import { Pie } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Lock, Building2, Sparkles } from "lucide-react";
+import { Building2, Sparkles } from "lucide-react";
 import type { MediaOwnership } from "@shared/schema";
-import { ProUpgradeButton } from "./ProUpgradeButton";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -22,23 +21,6 @@ export function OwnershipChart({ sourceName, isPro }: OwnershipChartProps) {
     enabled: isPro && !!sourceName,
   });
 
-  if (!isPro) {
-    return (
-      <div className="glass-morphism rounded-2xl p-6 mb-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Lock className="w-5 h-5 text-ios-blue" />
-            <h3 className="font-semibold text-gray-900">Media Ownership</h3>
-            <Badge className="bg-gradient-to-r from-ios-blue to-purple-500 text-white">Pro</Badge>
-          </div>
-        </div>
-        <p className="text-sm text-gray-600 mb-4">
-          See who owns {sourceName} and understand media ownership transparency
-        </p>
-        <ProUpgradeButton variant="default" />
-      </div>
-    );
-  }
 
   if (isLoading) {
     return (

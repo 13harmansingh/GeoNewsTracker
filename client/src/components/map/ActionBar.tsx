@@ -1,4 +1,4 @@
-import { Zap, MapPin, Trophy, CloudSun } from "lucide-react";
+import { Star, Globe, TrendingUp, Clock } from "lucide-react";
 
 interface ActionBarProps {
   activeFilter: string | null;
@@ -8,32 +8,32 @@ interface ActionBarProps {
 export default function ActionBar({ activeFilter, onFilterChange }: ActionBarProps) {
   const filters = [
     { 
-      id: 'breaking', 
-      label: 'Breaking', 
-      icon: Zap, 
-      color: 'text-ios-red',
-      category: 'BREAKING'
+      id: 'my-pins', 
+      label: 'My Pins', 
+      icon: Star, 
+      color: 'text-purple-600',
+      category: 'MY_PINS'
     },
     { 
-      id: 'local', 
-      label: 'Local', 
-      icon: MapPin, 
+      id: 'global', 
+      label: 'Global', 
+      icon: Globe, 
       color: 'text-ios-blue',
-      category: 'LOCAL'
+      category: 'GLOBAL'
     },
     { 
-      id: 'sports', 
-      label: 'Sports', 
-      icon: Trophy, 
+      id: 'trending', 
+      label: 'Trending', 
+      icon: TrendingUp, 
+      color: 'text-ios-red',
+      category: 'TRENDING'
+    },
+    { 
+      id: 'recent', 
+      label: 'Recent', 
+      icon: Clock, 
       color: 'text-ios-green',
-      category: 'SPORTS'
-    },
-    { 
-      id: 'weather', 
-      label: 'Weather', 
-      icon: CloudSun, 
-      color: 'text-ios-orange',
-      category: 'WEATHER'
+      category: 'RECENT'
     },
   ];
 
@@ -48,7 +48,7 @@ export default function ActionBar({ activeFilter, onFilterChange }: ActionBarPro
             return (
               <button
                 key={filter.id}
-                onClick={() => onFilterChange(filter.category)}
+                onClick={() => onFilterChange(activeFilter === filter.category ? null : filter.category)}
                 className={`
                   touch-feedback flex flex-col items-center transition-all duration-300 p-2 rounded-2xl
                   ${isActive ? 'transform scale-105 bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'}
