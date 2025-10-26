@@ -431,6 +431,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         taggedBy: userId
       });
+      
+      // Check if article is ephemeral (negative ID) - don't save to database
+      if (data.articleId < 0) {
+        console.log(`⚡ Ephemeral article ${data.articleId} - bias analysis not persisted to database`);
+        // Return a mock response for ephemeral articles
+        res.json({
+          id: Math.abs(data.articleId), // Return positive ID for frontend
+          articleId: data.articleId,
+          aiPrediction: data.aiPrediction,
+          aiConfidence: data.aiConfidence,
+          manualTag: data.manualTag,
+          aiSummary: data.aiSummary,
+          taggedBy: data.taggedBy,
+          taggedAt: new Date()
+        });
+        return;
+      }
+      
       const analysis = await storage.createBiasAnalysis(data);
       res.json(analysis);
     } catch (error) {

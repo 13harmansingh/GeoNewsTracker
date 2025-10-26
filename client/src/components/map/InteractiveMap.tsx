@@ -90,16 +90,17 @@ export default function InteractiveMap({
   };
 
   return (
-    <div className="absolute inset-0">
+    <div className="absolute inset-0 bg-ocean">
       <MapContainer
         ref={mapRef}
         center={[center[0], center[1]]}
         zoom={zoom}
-        style={{ height: '100%', width: '100%' }}
+        style={{ height: '100%', width: '100%', backgroundColor: '#AAD3DF' }}
         zoomControl={false}
         className="z-0"
-        maxBounds={[[-90, -180], [90, 180]]}
-        maxBoundsViscosity={1.0}
+        minZoom={2}
+        maxBounds={[[-135, -270], [135, 270]]}
+        maxBoundsViscosity={0.8}
       >
         <MapController center={center} zoom={zoom} />
         
