@@ -6,12 +6,11 @@ import SearchBar from "@/components/map/SearchBar";
 import MapControls from "@/components/map/MapControls";
 import ActionBar from "@/components/map/ActionBar";
 import { useNews } from "@/hooks/use-news";
-import { queryClient } from "@/lib/queryClient";
+import { useArticleExperience } from "@/contexts/ArticleExperienceContext";
 import type { NewsArticle } from "@shared/schema";
 
 export default function MapPage() {
-  const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
-  const [isNewsVisible, setIsNewsVisible] = useState(false);
+  const { selectedArticle, isNewsVisible, openArticle, closeArticle } = useArticleExperience();
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [mapCenter, setMapCenter] = useState([40.7589, -73.9851]); // NYC coordinates
@@ -29,13 +28,7 @@ export default function MapPage() {
     : (allNews || []);
 
   const handleMarkerClick = (article: NewsArticle) => {
-    setSelectedArticle(article);
-    setIsNewsVisible(true);
-  };
-
-  const handleCloseNews = () => {
-    setIsNewsVisible(false);
-    setTimeout(() => setSelectedArticle(null), 300);
+    openArticle(article);
   };
 
   const handleFilterChange = (filter: string | null) => {
@@ -125,78 +118,32 @@ export default function MapPage() {
   };
 
   const handleCenterLocation = () => {
-    // Get user's current location or default to NYC
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          console.log(`📍 User location found: ${position.coords.latitude}, ${position.coords.longitude}`);
-          setMapCenter([position.coords.latitude, position.coords.longitude]);
-          setMapZoom(14);
+          const { latitude, longitude } = position.coords;
+          setMapCenter([latitude, longitude]);
+          setMapZoom(13);
         },
         (error) => {
-          console.log('🚨 Geolocation error, falling back to NYC:', error.message);
-          // Fallback to NYC
-          setMapCenter([40.7589, -73.9851]);
-          setMapZoom(12);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 60000
+          console.error('Error getting location:', error);
         }
       );
-    } else {
-      console.log('🚨 Geolocation not supported, using NYC default');
-      setMapCenter([40.7589, -73.9851]);
-      setMapZoom(12);
     }
   };
 
-  const handleAreaClick = async (lat: number, lng: number) => {
-    console.log(`🗺️ Creating news point at: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-
-    try {
-      // Clear existing queries to prevent stale data
-      queryClient.removeQueries({ queryKey: ['/api/news'] });
-
-      // Build API URL with location and category filter
-      let apiUrl = `/api/news/location-fresh?lat=${lat}&lng=${lng}`;
-      if (activeFilter) {
-        apiUrl += `&category=${activeFilter}`;
-      }
-
-      console.log(`🔄 Fetching fresh ${activeFilter || 'general'} news for this location...`);
-
-      const response = await fetch(apiUrl);
-      const locationNews = await response.json();
-
-      if (locationNews.length > 0) {
-        console.log(`✅ Created ${locationNews.length} news markers at clicked location`);
-
-        // Center map on clicked location
-        setMapCenter([lat, lng]);
-        setMapZoom(Math.max(mapZoom, 10));
-
-        // Force refresh the map with new location-based news
-        await queryClient.invalidateQueries({ queryKey: ['/api/news'] });
-
-        // Show the first article found
-        setSelectedArticle(locationNews[0]);
-        setIsNewsVisible(true);
-
-      } else {
-        console.log('📍 Creating placeholder marker - no specific news found for this exact location');
-        // Still center the map and show that we tried
-        setMapCenter([lat, lng]);
-        setMapZoom(Math.max(mapZoom, 10));
-      }
-    } catch (error) {
-      console.error('🚨 Error creating location marker:', error);
-    }
-  };
+  // Get related news (same category or nearby location)
+  const relatedNews = selectedArticle
+    ? displayNews.filter(
+        (article) =>
+          article.id !== selectedArticle.id &&
+          (article.category === selectedArticle.category ||
+            Math.abs(article.latitude - selectedArticle.latitude) < 1)
+      ).slice(0, 3)
+    : [];
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-ios-gray">
+    <div className="relative h-screen w-full overflow-hidden bg-gray-50">
       {/* Navigation Bar */}
       <NavigationBar />
 
@@ -210,7 +157,12 @@ export default function MapPage() {
         center={mapCenter}
         zoom={mapZoom}
         isLoading={isLoading}
-        onAreaClick={handleAreaClick}
+      />
+
+      {/* Action Bar (Category Filters) */}
+      <ActionBar 
+        activeFilter={activeFilter}
+        onFilterChange={handleFilterChange}
       />
 
       {/* Map Controls */}
@@ -220,23 +172,12 @@ export default function MapPage() {
         onCenterLocation={handleCenterLocation}
       />
 
-      {/* Action Bar */}
-      <ActionBar
-        activeFilter={activeFilter}
-        onFilterChange={handleFilterChange}
-      />
-
       {/* News Panel */}
       <NewsPanel
         article={selectedArticle}
         isVisible={isNewsVisible}
-        onClose={handleCloseNews}
-        relatedNews={allNews.filter(article => 
-          selectedArticle && 
-          article.id !== selectedArticle.id && 
-          (article.category === selectedArticle.category || 
-           article.location === selectedArticle.location)
-        ).slice(0, 3)}
+        onClose={closeArticle}
+        relatedNews={relatedNews}
       />
     </div>
   );

@@ -344,9 +344,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Pro subscription check
-  app.get("/api/pro/status", isAuthenticated, async (req: any, res) => {
+  // Pro subscription check (public endpoint - returns false if not authenticated)
+  app.get("/api/pro/status", async (req: any, res) => {
     try {
+      // If not authenticated, return isPro: false
+      if (!req.isAuthenticated || !req.isAuthenticated()) {
+        return res.json({ isPro: false });
+      }
+
       const userId = req.user.claims.sub;
       const subscription = await storage.getProSubscription(userId);
       res.json({ isPro: !!subscription && subscription.isActive });

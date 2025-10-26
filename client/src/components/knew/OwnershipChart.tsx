@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { Pie } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Lock, Building2, Sparkles } from "lucide-react";
 import type { MediaOwnership } from "@shared/schema";
+import { ProUpgradeButton } from "./ProUpgradeButton";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -12,7 +14,7 @@ interface OwnershipChartProps {
   isPro: boolean;
 }
 
-const CHART_COLORS = ["#FF4500", "#0000FF", "#FFD700", "#32CD32", "#FF1493", "#00CED1"];
+const CHART_COLORS = ["#FF4500", "#0000FF", "#FFD700", "#34C759", "#FF1493", "#00CED1"];
 
 export function OwnershipChart({ sourceName, isPro }: OwnershipChartProps) {
   const { data: ownership, isLoading } = useQuery<MediaOwnership | null>({
@@ -22,46 +24,45 @@ export function OwnershipChart({ sourceName, isPro }: OwnershipChartProps) {
 
   if (!isPro) {
     return (
-      <Card className="bg-gradient-to-br from-gray-900 to-black border-gray-700">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            🔒 Media Ownership - Pro Feature
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-400 text-sm">
-            Upgrade to Pro to see who owns {sourceName}
-          </p>
-        </CardContent>
-      </Card>
+      <div className="glass-morphism rounded-2xl p-6 mb-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Lock className="w-5 h-5 text-ios-blue" />
+            <h3 className="font-semibold text-gray-900">Media Ownership</h3>
+            <Badge className="bg-gradient-to-r from-ios-blue to-purple-500 text-white">Pro</Badge>
+          </div>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          See who owns {sourceName} and understand media ownership transparency
+        </p>
+        <ProUpgradeButton variant="default" />
+      </div>
     );
   }
 
   if (isLoading) {
     return (
-      <Card className="bg-gradient-to-br from-gray-900 to-black border-gray-700">
-        <CardHeader>
-          <Skeleton className="h-6 w-48" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-64 w-full" />
-        </CardContent>
-      </Card>
+      <div className="glass-morphism rounded-2xl p-6 mb-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Building2 className="w-5 h-5 text-ios-blue animate-pulse" />
+          <h3 className="font-semibold text-gray-900">Loading ownership data...</h3>
+        </div>
+        <Skeleton className="h-64 w-full bg-gray-200" />
+      </div>
     );
   }
 
   if (!ownership) {
     return (
-      <Card className="bg-gradient-to-br from-gray-900 to-black border-gray-700">
-        <CardHeader>
-          <CardTitle className="text-white">Media Ownership</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-400 text-sm">
-            No ownership data available for {sourceName}
-          </p>
-        </CardContent>
-      </Card>
+      <div className="glass-morphism rounded-2xl p-6 mb-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Building2 className="w-5 h-5 text-gray-500" />
+          <h3 className="font-semibold text-gray-900">Media Ownership</h3>
+        </div>
+        <p className="text-sm text-gray-600">
+          No ownership data available for {sourceName}
+        </p>
+      </div>
     );
   }
 
@@ -75,8 +76,8 @@ export function OwnershipChart({ sourceName, isPro }: OwnershipChartProps) {
       {
         data: values,
         backgroundColor: CHART_COLORS.slice(0, labels.length),
-        borderColor: "#1a1a1a",
-        borderWidth: 2,
+        borderColor: "#ffffff",
+        borderWidth: 3,
       },
     ],
   };
@@ -88,10 +89,11 @@ export function OwnershipChart({ sourceName, isPro }: OwnershipChartProps) {
       legend: {
         position: "bottom" as const,
         labels: {
-          color: "#ffffff",
+          color: "#374151",
           padding: 15,
           font: {
             size: 12,
+            weight: 500,
           },
         },
       },
@@ -103,30 +105,45 @@ export function OwnershipChart({ sourceName, isPro }: OwnershipChartProps) {
             return `${label}: ${value}%`;
           },
         },
+        backgroundColor: "rgba(255, 255, 255, 0.95)",
+        titleColor: "#111827",
+        bodyColor: "#374151",
+        borderColor: "#E5E7EB",
+        borderWidth: 1,
       },
     },
   };
 
   return (
-    <Card className="bg-gradient-to-br from-gray-900 to-black border-gray-700" data-testid="card-ownership-chart">
-      <CardHeader>
-        <CardTitle className="text-white">
-          {sourceName} Ownership Structure
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="h-64">
+    <div className="glass-morphism rounded-2xl p-6 mb-4" data-testid="card-ownership-chart">
+      <div className="flex items-center gap-2 mb-4">
+        <Building2 className="w-5 h-5 text-ios-blue" />
+        <h3 className="font-semibold text-gray-900">{sourceName} Ownership</h3>
+        <Badge className="bg-gradient-to-r from-purple-500 to-blue-500 text-white flex items-center gap-1">
+          <Sparkles className="w-3 h-3" />
+          Pro
+        </Badge>
+      </div>
+
+      <div className="bg-white/60 rounded-xl p-4 border border-gray-200">
+        <div className="h-64 mb-4">
           <Pie data={chartData} options={options} />
         </div>
-        <div className="mt-4 space-y-2">
+        <div className="space-y-2 border-t border-gray-200 pt-4">
           {labels.map((label, index) => (
-            <div key={label} className="flex justify-between text-sm" data-testid={`ownership-item-${index}`}>
-              <span className="text-gray-300">{label}</span>
-              <span className="text-white font-semibold">{values[index]}%</span>
+            <div key={label} className="flex justify-between items-center text-sm" data-testid={`ownership-item-${index}`}>
+              <div className="flex items-center gap-2">
+                <div 
+                  className="w-3 h-3 rounded-full" 
+                  style={{ backgroundColor: CHART_COLORS[index] }}
+                ></div>
+                <span className="text-gray-700 font-medium">{label}</span>
+              </div>
+              <span className="text-gray-900 font-bold">{values[index]}%</span>
             </div>
           ))}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

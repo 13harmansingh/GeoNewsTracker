@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { X, Clock, MapPin, TrendingUp, Share, Eye } from "lucide-react";
 import type { NewsArticle } from "@shared/schema";
+import { BiasAnalysisForm } from "@/components/knew/BiasAnalysisForm";
+import { OwnershipChart } from "@/components/knew/OwnershipChart";
+import { useArticleExperience } from "@/contexts/ArticleExperienceContext";
 
 interface NewsPanelProps {
   article: NewsArticle | null;
@@ -12,13 +15,13 @@ interface NewsPanelProps {
 export default function NewsPanel({ article, isVisible, onClose, relatedNews }: NewsPanelProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [actualContent, setActualContent] = useState(false);
+  const { isPro, openArticle } = useArticleExperience();
 
   useEffect(() => {
     if (isVisible && article) {
       setIsLoading(true);
       setActualContent(false);
       
-      // Simulate loading delay for premium UX
       const timer = setTimeout(() => {
         setIsLoading(false);
         setActualContent(true);
@@ -64,6 +67,11 @@ export default function NewsPanel({ article, isVisible, onClose, relatedNews }: 
     }
   };
 
+  const handleRelatedArticleClick = (relatedArticle: NewsArticle) => {
+    openArticle(relatedArticle);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className={`
       fixed bottom-0 left-0 right-0 z-50 transition-transform duration-300 ease-out
@@ -85,6 +93,7 @@ export default function NewsPanel({ article, isVisible, onClose, relatedNews }: 
             <button 
               onClick={onClose}
               className="touch-feedback p-2 rounded-full glass-morphism hover:bg-opacity-70 transition-all"
+              data-testid="button-close-panel"
             >
               <X className="w-5 h-5 text-gray-600" />
             </button>
@@ -126,22 +135,23 @@ export default function NewsPanel({ article, isVisible, onClose, relatedNews }: 
                   src={article.imageUrl}
                   alt={article.title}
                   className="w-full h-48 object-cover rounded-xl shadow-md"
+                  data-testid="article-image"
                 />
               )}
               
               {/* Article Title and Summary */}
               <div>
-                <h3 className="text-lg font-semibold mb-3 leading-tight">
+                <h3 className="text-lg font-semibold mb-3 leading-tight" data-testid="article-title">
                   {article.title}
                 </h3>
-                <p className="text-gray-600 text-sm mb-4 leading-relaxed">
+                <p className="text-gray-600 text-sm mb-4 leading-relaxed" data-testid="article-summary">
                   {article.summary}
                 </p>
               </div>
 
               {/* Article Content */}
               <div className="prose prose-sm max-w-none">
-                <p className="text-gray-700 text-sm leading-relaxed">
+                <p className="text-gray-700 text-sm leading-relaxed" data-testid="article-content">
                   {article.content}
                 </p>
               </div>
@@ -150,7 +160,7 @@ export default function NewsPanel({ article, isVisible, onClose, relatedNews }: 
               {article.sourceName && (
                 <div className="glass-morphism rounded-xl p-3 mb-4">
                   <p className="text-xs text-gray-600 mb-1">Source</p>
-                  <p className="text-sm font-medium text-gray-800">{article.sourceName}</p>
+                  <p className="text-sm font-medium text-gray-800" data-testid="article-source">{article.sourceName}</p>
                   {article.country && (
                     <p className="text-xs text-gray-500">{article.country.toUpperCase()}</p>
                   )}
@@ -173,6 +183,7 @@ export default function NewsPanel({ article, isVisible, onClose, relatedNews }: 
                   <button 
                     onClick={handleShare}
                     className="touch-feedback p-2 rounded-full glass-morphism hover:bg-opacity-70 transition-all"
+                    data-testid="button-share"
                   >
                     <Share className="w-4 h-4 text-gray-600" />
                   </button>
@@ -196,52 +207,66 @@ export default function NewsPanel({ article, isVisible, onClose, relatedNews }: 
                         ? 'bg-ios-blue text-white hover:bg-opacity-90' 
                         : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     }`}
+                    data-testid="button-source"
                   >
                     {article.sourceUrl ? 'Read Full Article' : 'Source Not Available'}
                   </button>
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* Related News */}
-          {actualContent && relatedNews.length > 0 && (
-            <div className="mt-8">
-              <h4 className="font-semibold text-gray-900 mb-4 text-lg">More Local News</h4>
-              <div className="space-y-3">
-                {relatedNews.map((relatedArticle) => (
-                  <div 
-                    key={relatedArticle.id}
-                    className="glass-morphism rounded-xl p-4 cursor-pointer touch-feedback hover:bg-opacity-70 transition-all"
-                  >
-                    <div className="flex space-x-3">
-                      {relatedArticle.imageUrl && (
-                        <img 
-                          src={relatedArticle.imageUrl}
-                          alt={relatedArticle.title}
-                          className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
-                        />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <h5 className="font-medium text-sm mb-1 line-clamp-2">
-                          {relatedArticle.title}
-                        </h5>
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs text-gray-600">
-                            {formatTimeAgo(relatedArticle.publishedAt)}
-                          </p>
-                          <span className={`
-                            inline-block px-2 py-1 text-xs font-medium rounded-full text-white
-                            ${getCategoryColor(relatedArticle.category)}
-                          `}>
-                            {relatedArticle.category}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              {/* Pro Features Section - Vertically Stacked */}
+              <div className="mt-8 space-y-4">
+                {/* AI Bias Analysis */}
+                <BiasAnalysisForm article={article} isPro={isPro} />
+
+                {/* Media Ownership Chart */}
+                {article.sourceName && (
+                  <OwnershipChart sourceName={article.sourceName} isPro={isPro} />
+                )}
               </div>
+
+              {/* Related News */}
+              {relatedNews.length > 0 && (
+                <div className="mt-8">
+                  <h4 className="font-semibold text-gray-900 mb-4 text-lg">More Local News</h4>
+                  <div className="space-y-3">
+                    {relatedNews.map((relatedArticle) => (
+                      <button
+                        key={relatedArticle.id}
+                        onClick={() => handleRelatedArticleClick(relatedArticle)}
+                        className="w-full glass-morphism rounded-xl p-4 cursor-pointer touch-feedback hover:bg-opacity-70 transition-all text-left"
+                        data-testid={`related-article-${relatedArticle.id}`}
+                      >
+                        <div className="flex space-x-3">
+                          {relatedArticle.imageUrl && (
+                            <img 
+                              src={relatedArticle.imageUrl}
+                              alt={relatedArticle.title}
+                              className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
+                            />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h5 className="font-medium text-sm mb-1 line-clamp-2">
+                              {relatedArticle.title}
+                            </h5>
+                            <div className="flex items-center justify-between">
+                              <p className="text-xs text-gray-600">
+                                {formatTimeAgo(relatedArticle.publishedAt)}
+                              </p>
+                              <span className={`
+                                inline-block px-2 py-1 text-xs font-medium rounded-full text-white
+                                ${getCategoryColor(relatedArticle.category)}
+                              `}>
+                                {relatedArticle.category}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
