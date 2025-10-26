@@ -3,6 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ArticleExperienceProvider } from "@/contexts/ArticleExperienceContext";
 import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import MapPage from "@/pages/map";
@@ -33,8 +34,10 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Router />
+        <ArticleExperienceProvider>
+          <Toaster />
+          <Router />
+        </ArticleExperienceProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

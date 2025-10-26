@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { BiasAnalysis, NewsArticle } from "@shared/schema";
-import { Brain, TrendingUp, AlertCircle } from "lucide-react";
+import { Brain, TrendingUp, AlertCircle, Lock, Sparkles } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ProUpgradeButton } from "./ProUpgradeButton";
 
 interface BiasAnalysisFormProps {
   article: NewsArticle;
@@ -82,118 +83,132 @@ export function BiasAnalysisForm({ article, isPro }: BiasAnalysisFormProps) {
 
   if (!isPro) {
     return (
-      <Card className="bg-gradient-to-br from-gray-900 to-black border-gray-700">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            🔒 AI Bias Analysis - Pro Feature
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-400 text-sm">
-            Upgrade to Pro to unlock AI-powered bias detection and analysis
-          </p>
-        </CardContent>
-      </Card>
+      <div className="glass-morphism rounded-2xl p-6 mb-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Lock className="w-5 h-5 text-ios-blue" />
+            <h3 className="font-semibold text-gray-900">AI Bias Analysis</h3>
+            <Badge className="bg-gradient-to-r from-ios-blue to-purple-500 text-white">Pro</Badge>
+          </div>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          Get AI-powered bias detection with confidence scores and neutral summaries
+        </p>
+        <ProUpgradeButton variant="default" />
+      </div>
     );
   }
 
   if (isLoading || aiAnalyzing) {
     return (
-      <Card className="bg-gradient-to-br from-gray-900 to-black border-gray-700">
-        <CardHeader>
-          <Skeleton className="h-6 w-48" />
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-10 w-full" />
-        </CardContent>
-      </Card>
+      <div className="glass-morphism rounded-2xl p-6 mb-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Brain className="w-5 h-5 text-purple-500 animate-pulse" />
+          <h3 className="font-semibold text-gray-900">Analyzing bias...</h3>
+        </div>
+        <div className="space-y-3">
+          <Skeleton className="h-20 w-full bg-gray-200" />
+          <Skeleton className="h-10 w-full bg-gray-200" />
+        </div>
+      </div>
     );
   }
 
   const getTagColor = (tag: BiasTag) => {
     switch (tag) {
       case "left":
-        return "bg-blue-600 hover:bg-blue-500";
+        return "bg-blue-500 hover:bg-blue-600 text-white";
       case "center":
-        return "bg-gray-600 hover:bg-gray-500";
+        return "bg-gray-500 hover:bg-gray-600 text-white";
       case "right":
-        return "bg-red-600 hover:bg-red-500";
+        return "bg-red-500 hover:bg-red-600 text-white";
+    }
+  };
+
+  const getTagBadgeColor = (tag: BiasTag) => {
+    switch (tag) {
+      case "left":
+        return "bg-blue-100 text-blue-700 border-blue-300";
+      case "center":
+        return "bg-gray-100 text-gray-700 border-gray-300";
+      case "right":
+        return "bg-red-100 text-red-700 border-red-300";
     }
   };
 
   return (
-    <Card className="bg-gradient-to-br from-gray-900 to-black border-gray-700" data-testid="card-bias-analysis">
-      <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
-          <Brain className="w-5 h-5 text-purple-400" />
-          Bias Analysis
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {aiResult && (
-          <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700" data-testid="ai-prediction">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-300 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4" />
-                AI Suggestion:
-              </span>
-              <Badge className={`${getTagColor(aiResult.prediction)} text-white`}>
-                {aiResult.prediction.toUpperCase()}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-2 mb-3">
-              <TrendingUp className="w-4 h-4 text-green-400" />
-              <span className="text-xs text-gray-400">
-                Confidence: {(aiResult.confidence * 100).toFixed(0)}%
-              </span>
-            </div>
-            {aiResult.summary && (
-              <p className="text-xs text-gray-400 italic mt-2">
-                "{aiResult.summary}"
-              </p>
-            )}
-          </div>
-        )}
+    <div className="glass-morphism rounded-2xl p-6 mb-4" data-testid="card-bias-analysis">
+      <div className="flex items-center gap-2 mb-4">
+        <Brain className="w-5 h-5 text-purple-500" />
+        <h3 className="font-semibold text-gray-900">AI Bias Analysis</h3>
+        <Badge className="bg-gradient-to-r from-purple-500 to-blue-500 text-white flex items-center gap-1">
+          <Sparkles className="w-3 h-3" />
+          Pro
+        </Badge>
+      </div>
 
-        {existingAnalysis && (
-          <div className="p-4 bg-green-900/20 rounded-lg border border-green-700" data-testid="saved-analysis">
-            <p className="text-sm text-green-300">
-              ✓ Tagged as <strong>{existingAnalysis.manualTag?.toUpperCase()}</strong>
+      {aiResult && (
+        <div className="p-4 bg-white/60 rounded-xl border border-gray-200 mb-4 shadow-sm" data-testid="ai-prediction">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-gray-700 flex items-center gap-2 font-medium">
+              <AlertCircle className="w-4 h-4 text-purple-500" />
+              AI Suggestion:
+            </span>
+            <Badge className={`${getTagBadgeColor(aiResult.prediction)} border`}>
+              {aiResult.prediction.toUpperCase()}
+            </Badge>
+          </div>
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingUp className="w-4 h-4 text-green-500" />
+            <span className="text-xs text-gray-600 font-medium">
+              Confidence: {(aiResult.confidence * 100).toFixed(0)}%
+            </span>
+          </div>
+          {aiResult.summary && (
+            <p className="text-xs text-gray-700 italic mt-2 leading-relaxed">
+              "{aiResult.summary}"
             </p>
-          </div>
-        )}
-
-        <div className="space-y-2">
-          <label className="text-sm text-gray-300">Manual Bias Tag:</label>
-          <div className="grid grid-cols-3 gap-2">
-            {(["left", "center", "right"] as BiasTag[]).map((tag) => (
-              <Button
-                key={tag}
-                variant={selectedTag === tag ? "default" : "outline"}
-                className={`${
-                  selectedTag === tag
-                    ? getTagColor(tag)
-                    : "border-gray-600 text-gray-300 hover:bg-gray-800"
-                }`}
-                onClick={() => setSelectedTag(tag)}
-                data-testid={`button-tag-${tag}`}
-              >
-                {tag.toUpperCase()}
-              </Button>
-            ))}
-          </div>
+          )}
         </div>
+      )}
 
-        <Button
-          onClick={() => selectedTag && saveMutation.mutate(selectedTag)}
-          disabled={!selectedTag || saveMutation.isPending}
-          className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500"
-          data-testid="button-save-analysis"
-        >
-          {saveMutation.isPending ? "Saving..." : "Save Analysis"}
-        </Button>
-      </CardContent>
-    </Card>
+      {existingAnalysis && (
+        <div className="p-4 bg-green-50 rounded-xl border border-green-200 mb-4" data-testid="saved-analysis">
+          <p className="text-sm text-green-700 font-medium">
+            ✓ Tagged as <strong>{existingAnalysis.manualTag?.toUpperCase()}</strong>
+          </p>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        <label className="text-sm text-gray-700 font-medium">Manual Bias Tag:</label>
+        <div className="grid grid-cols-3 gap-2">
+          {(["left", "center", "right"] as BiasTag[]).map((tag) => (
+            <Button
+              key={tag}
+              variant={selectedTag === tag ? "default" : "outline"}
+              className={`${
+                selectedTag === tag
+                  ? getTagColor(tag)
+                  : "border-gray-300 text-gray-700 hover:bg-gray-100 bg-white"
+              } transition-all touch-feedback`}
+              onClick={() => setSelectedTag(tag)}
+              data-testid={`button-tag-${tag}`}
+            >
+              {tag.toUpperCase()}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      <Button
+        onClick={() => selectedTag && saveMutation.mutate(selectedTag)}
+        disabled={!selectedTag || saveMutation.isPending}
+        className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white mt-4 touch-feedback"
+        data-testid="button-save-analysis"
+      >
+        {saveMutation.isPending ? "Saving..." : "Save Analysis"}
+      </Button>
+    </div>
   );
 }

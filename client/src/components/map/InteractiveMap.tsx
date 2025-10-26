@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Tooltip, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
-import { Clock, MapPin, TrendingUp } from "lucide-react";
+import { Clock } from "lucide-react";
 import type { NewsArticle } from "@shared/schema";
 import "leaflet/dist/leaflet.css";
 
@@ -137,6 +137,17 @@ export default function InteractiveMap({
 
         {!isLoading && news && Array.isArray(news) && news.map((article) => {
           console.log(`📍 Placing marker for "${article.title}" at ${article.latitude.toFixed(4)}, ${article.longitude.toFixed(4)}`);
+          
+          const getCategoryColor = (category: string) => {
+            const colors = {
+              'BREAKING': 'bg-ios-red',
+              'LOCAL': 'bg-ios-blue',
+              'CIVIC': 'bg-ios-orange',
+              'SPORTS': 'bg-ios-green',
+            };
+            return colors[category as keyof typeof colors] || 'bg-ios-blue';
+          };
+
           return (
             <Marker
               key={article.id}
@@ -149,69 +160,29 @@ export default function InteractiveMap({
                 }
               }}
             >
-            <Popup className="glass-popup">
-              <div className="p-3 min-w-[250px]">
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`
-                    inline-block px-2 py-1 text-xs font-semibold rounded-full
-                    ${article.isBreaking ? 'bg-ios-red text-white' : 'bg-ios-blue text-white'}
-                  `}>
-                    {article.category}
-                  </span>
-                  <span className="text-xs text-gray-500 flex items-center">
-                    <Clock className="w-3 h-3 mr-1" />
-                    {formatTimeAgo(article.publishedAt)}
-                  </span>
+              <Tooltip 
+                direction="top" 
+                offset={[0, -20]} 
+                opacity={0.95}
+                permanent={false}
+                className="custom-tooltip"
+              >
+                <div className="p-3 min-w-[200px] max-w-[280px]">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full text-white ${getCategoryColor(article.category)}`}>
+                      {article.category}
+                    </span>
+                    <span className="text-xs text-gray-600 flex items-center">
+                      <Clock className="w-3 h-3 mr-1" />
+                      {formatTimeAgo(article.publishedAt)}
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight">
+                    {article.title}
+                  </h4>
+                  <p className="text-xs text-gray-500 mt-1">Click to read more</p>
                 </div>
-                
-                <h3 className="font-semibold text-sm mb-2 line-clamp-2">
-                  {article.title}
-                </h3>
-                
-                <p className="text-xs text-gray-600 mb-3 line-clamp-2">
-                  {article.summary}
-                </p>
-                
-                <div className="flex items-center justify-between text-xs">
-                  <span className="flex items-center text-gray-500">
-                    <MapPin className="w-3 h-3 mr-1" />
-                    {article.location}
-                  </span>
-                  <span className="flex items-center text-gray-500">
-                    <TrendingUp className="w-3 h-3 mr-1" />
-                    {article.views || 0} views
-                  </span>
-                </div>
-                
-                <div className="flex gap-2 mt-3">
-                  <button 
-                    onClick={() => onMarkerClick(article)}
-                    className="flex-1 bg-ios-blue text-white px-3 py-2 rounded-lg text-xs font-medium touch-feedback hover:bg-opacity-90 transition-all"
-                  >
-                    Read More
-                  </button>
-                  {article.sourceUrl && (
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        console.log('Source button clicked, URL:', article.sourceUrl);
-                        if (article.sourceUrl) {
-                          try {
-                            window.open(article.sourceUrl, '_blank', 'noopener,noreferrer');
-                            console.log('Window.open called successfully');
-                          } catch (error) {
-                            console.error('Error opening URL:', error);
-                          }
-                        }
-                      }}
-                      className="px-3 py-2 border border-ios-blue text-ios-blue rounded-lg text-xs font-medium touch-feedback hover:bg-ios-blue hover:text-white transition-all"
-                    >
-                      Source
-                    </button>
-                  )}
-                </div>
-              </div>
-            </Popup>
+              </Tooltip>
           </Marker>
           );
         })}
