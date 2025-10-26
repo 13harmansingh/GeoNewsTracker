@@ -26,6 +26,25 @@ const COUNTRY_COORDINATES: Record<string, { lat: number; lng: number; name: stri
   "gb": { lat: 55.3781, lng: -3.4360, name: "United Kingdom" },
 };
 
+// Worldwide major city coordinates for diverse marker distribution
+const WORLDWIDE_LOCATIONS: Array<{ lat: number; lng: number; name: string; region: string }> = [
+  { lat: 40.7128, lng: -74.0060, name: "New York", region: "North America" },
+  { lat: 51.5074, lng: -0.1278, name: "London", region: "Europe" },
+  { lat: 48.8566, lng: 2.3522, name: "Paris", region: "Europe" },
+  { lat: 35.6762, lng: 139.6503, name: "Tokyo", region: "Asia" },
+  { lat: -33.8688, lng: 151.2093, name: "Sydney", region: "Australia" },
+  { lat: 19.0760, lng: 72.8777, name: "Mumbai", region: "Asia" },
+  { lat: -23.5505, lng: -46.6333, name: "São Paulo", region: "South America" },
+  { lat: 55.7558, lng: 37.6176, name: "Moscow", region: "Europe" },
+  { lat: 39.9042, lng: 116.4074, name: "Beijing", region: "Asia" },
+  { lat: 6.5244, lng: 3.3792, name: "Lagos", region: "Africa" },
+  { lat: -26.2041, lng: 28.0473, name: "Johannesburg", region: "Africa" },
+  { lat: 25.2048, lng: 55.2708, name: "Dubai", region: "Middle East" },
+  { lat: 19.4326, lng: -99.1332, name: "Mexico City", region: "North America" },
+  { lat: 1.3521, lng: 103.8198, name: "Singapore", region: "Asia" },
+  { lat: 52.5200, lng: 13.4050, name: "Berlin", region: "Europe" },
+];
+
 class NewsAPIService {
   private readonly apiKey: string;
   private readonly baseUrl = "https://newsapi.org/v2/top-headlines";
