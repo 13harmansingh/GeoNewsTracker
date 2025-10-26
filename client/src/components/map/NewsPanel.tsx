@@ -69,8 +69,8 @@ export default function NewsPanel({ article, isVisible, onClose, relatedNews }: 
       fixed bottom-0 left-0 right-0 z-50 transition-transform duration-300 ease-out
       ${isVisible ? 'translate-y-0' : 'translate-y-full'}
     `}>
-      <div className="news-card rounded-t-3xl shadow-2xl min-h-[60vh] max-h-[85vh] overflow-hidden">
-        <div className="p-6 h-full overflow-y-auto">
+      <div className="news-card rounded-t-3xl shadow-2xl min-h-[60vh] max-h-[85vh] flex flex-col">
+        <div className="p-6 flex-1 overflow-y-auto max-h-[85vh]">
           {/* Handle Bar */}
           <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-6"></div>
           
