@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
 import type { NewsArticle } from "@shared/schema";
 
 interface ArticleExperienceContextType {
@@ -18,11 +17,8 @@ export function ArticleExperienceProvider({ children }: { children: React.ReactN
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
   const [isNewsVisible, setIsNewsVisible] = useState(false);
 
-  const { data: proStatus } = useQuery<{ isPro: boolean }>({
-    queryKey: ["/api/pro/status"],
-  });
-
-  const isPro = proStatus?.isPro || false;
+  // Pro features now available to everyone - no paywall for EIC grant demo
+  const isPro = true;
 
   const openArticle = (article: NewsArticle) => {
     setSelectedArticle(article);
