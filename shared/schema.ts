@@ -41,6 +41,8 @@ export const newsArticles = pgTable("news_articles", {
   country: text("country"),
   language: text("language").default("en"),
   externalId: text("external_id"),
+  userId: varchar("user_id").references(() => users.id),
+  isUserCreated: boolean("is_user_created").default(false),
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({
