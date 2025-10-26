@@ -15,20 +15,40 @@ export default function MapPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [mapCenter, setMapCenter] = useState([40.7589, -73.9851]); // NYC coordinates
   const [mapZoom, setMapZoom] = useState(12);
+  const [locationNews, setLocationNews] = useState<NewsArticle[]>([]);
 
   const { data: allNews = [], isLoading } = useNews.useAllNews();
   const { data: filteredNews = [] } = useNews.useFilteredNews(activeFilter);
   const { data: searchResults = [] } = useNews.useSearchNews(searchQuery);
 
   // Determine which news to display based on current state
-  const displayNews = searchQuery 
+  const baseNews = searchQuery 
     ? (searchResults || []) 
     : activeFilter 
     ? (filteredNews || []) 
     : (allNews || []);
+  
+  // Merge location-clicked news with base news
+  const displayNews = [...baseNews, ...locationNews];
 
   const handleMarkerClick = (article: NewsArticle) => {
     openArticle(article);
+  };
+
+  const handleAreaClick = async (lat: number, lng: number) => {
+    console.log(`📍 Fetching news for clicked area: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+    try {
+      const response = await fetch(`/api/news/location-fresh?lat=${lat}&lng=${lng}`);
+      if (response.ok) {
+        const freshNews = await response.json();
+        console.log(`✅ Fetched ${freshNews.length} fresh news articles for location`);
+        setLocationNews(prev => [...prev, ...freshNews]);
+      } else {
+        console.error('Failed to fetch location news:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error fetching location news:', error);
+    }
   };
 
   const handleFilterChange = (filter: string | null) => {
@@ -157,6 +177,7 @@ export default function MapPage() {
         center={mapCenter}
         zoom={mapZoom}
         isLoading={isLoading}
+        onAreaClick={handleAreaClick}
       />
 
       {/* Action Bar (Category Filters) */}
