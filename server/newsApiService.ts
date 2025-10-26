@@ -56,6 +56,108 @@ class NewsAPIService {
     }
   }
 
+  async getWorldwideHeadlines(): Promise<NewsArticle[]> {
+    // Fetch US headlines and distribute them worldwide using WORLDWIDE_LOCATIONS
+    if (!this.apiKey) {
+      return this.getMockWorldwideHeadlines();
+    }
+
+    try {
+      const url = `${this.baseUrl}?country=us&pageSize=15&apiKey=${this.apiKey}`;
+      console.log(`Fetching headlines for worldwide distribution...`);
+
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error(`NewsAPI error: ${response.status}`, errorData);
+        return this.getMockWorldwideHeadlines();
+      }
+
+      const data: NewsAPIResponse = await response.json();
+
+      if (!data.articles || data.articles.length === 0) {
+        console.warn(`No articles found`);
+        return this.getMockWorldwideHeadlines();
+      }
+
+      // Distribute articles across worldwide locations
+      return data.articles.slice(0, WORLDWIDE_LOCATIONS.length).map((article, index) => {
+        const location = WORLDWIDE_LOCATIONS[index];
+        const randomOffset = 0.5;
+        const lat = location.lat + (Math.random() - 0.5) * randomOffset;
+        const lng = location.lng + (Math.random() - 0.5) * randomOffset;
+
+        return {
+          id: Date.now() + index,
+          title: article.title,
+          summary: article.description || article.title,
+          content: article.content || article.description || article.title,
+          category: "BREAKING",
+          latitude: lat,
+          longitude: lng,
+          imageUrl: article.urlToImage,
+          isBreaking: true,
+          views: Math.floor(Math.random() * 1000) + 100,
+          publishedAt: new Date(article.publishedAt),
+          location: location.name,
+          sourceUrl: article.url,
+          sourceName: article.source.name,
+          country: location.region,
+          language: "en",
+          externalId: `newsapi-worldwide-${Date.now()}-${index}`,
+        } as NewsArticle;
+      });
+
+    } catch (error) {
+      console.error(`Error fetching NewsAPI headlines:`, error);
+      return this.getMockWorldwideHeadlines();
+    }
+  }
+
+  private getMockWorldwideHeadlines(): NewsArticle[] {
+    const mockTitles = [
+      "Global Markets Show Strong Recovery",
+      "International Summit Addresses Climate Change",
+      "Technology Innovation Transforms Healthcare",
+      "Major Archaeological Discovery Announced",
+      "Sports Championship Draws Record Viewers",
+      "New Space Exploration Mission Launched",
+      "Cultural Festival Celebrates Diversity",
+      "Economic Growth Exceeds Expectations",
+      "Scientific Breakthrough in Renewable Energy",
+      "Historic Agreement Signed by World Leaders",
+      "Educational Reform Initiative Unveiled",
+      "Transportation Infrastructure Modernized",
+      "Environmental Protection Measures Expanded",
+      "Digital Security Standards Updated",
+      "Community Development Project Succeeds"
+    ];
+
+    return WORLDWIDE_LOCATIONS.map((location, index) => {
+      const randomOffset = 0.5;
+      return {
+        id: Date.now() + index,
+        title: mockTitles[index] || mockTitles[0],
+        summary: `Latest news from ${location.name}: ${mockTitles[index] || mockTitles[0]}`,
+        content: `This is breaking news from ${location.name} in ${location.region}.`,
+        category: "BREAKING",
+        latitude: location.lat + (Math.random() - 0.5) * randomOffset,
+        longitude: location.lng + (Math.random() - 0.5) * randomOffset,
+        imageUrl: null,
+        isBreaking: true,
+        views: Math.floor(Math.random() * 500) + 50,
+        publishedAt: new Date(),
+        location: location.name,
+        sourceUrl: "#",
+        sourceName: `${location.name} News`,
+        country: location.region,
+        language: "en",
+        externalId: `mock-worldwide-${index}`,
+      };
+    });
+  }
+
   async getTopHeadlinesByCountry(countryCode: string): Promise<NewsArticle[]> {
     if (!this.apiKey) {
       return this.getMockHeadlines(countryCode);
