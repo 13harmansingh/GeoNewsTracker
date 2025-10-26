@@ -6,9 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { BiasAnalysis, NewsArticle } from "@shared/schema";
-import { Brain, TrendingUp, AlertCircle, Lock, Sparkles } from "lucide-react";
+import { Brain, TrendingUp, AlertCircle, Sparkles } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ProUpgradeButton } from "./ProUpgradeButton";
 
 interface BiasAnalysisFormProps {
   article: NewsArticle;
@@ -96,23 +95,6 @@ export function BiasAnalysisForm({ article, isPro }: BiasAnalysisFormProps) {
     }
   }, [isPro, existingAnalysis]);
 
-  if (!isPro) {
-    return (
-      <div className="glass-morphism rounded-2xl p-6 mb-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Lock className="w-5 h-5 text-ios-blue" />
-            <h3 className="font-semibold text-gray-900">AI Bias Analysis</h3>
-            <Badge className="bg-gradient-to-r from-ios-blue to-purple-500 text-white">Pro</Badge>
-          </div>
-        </div>
-        <p className="text-sm text-gray-600 mb-4">
-          Get AI-powered bias detection with confidence scores and neutral summaries
-        </p>
-        <ProUpgradeButton variant="default" />
-      </div>
-    );
-  }
 
   if (isLoading || aiAnalyzing) {
     return (

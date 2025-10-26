@@ -14,7 +14,7 @@ L.Icon.Default.mergeOptions({
 });
 
 // Custom marker icons
-const createCustomIcon = (category: string, isBreaking: boolean = false) => {
+const createCustomIcon = (category: string, isBreaking: boolean = false, isUserCreated: boolean = false) => {
   const colors = {
     'BREAKING': '#FF3B30',
     'LOCAL': '#007AFF',
@@ -25,6 +25,26 @@ const createCustomIcon = (category: string, isBreaking: boolean = false) => {
 
   const color = colors[category as keyof typeof colors] || colors.default;
   const pulseClass = isBreaking ? 'animate-pulse-glow' : '';
+  
+  // User-created pins have purple gradient and star icon
+  if (isUserCreated) {
+    return L.divIcon({
+      html: `
+        <div class="relative">
+          <div class="rounded-full p-3 map-pin shadow-lg" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); backdrop-filter: blur(10px);">
+            <svg class="w-4 h-4" fill="white" viewBox="0 0 24 24">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+          </div>
+          <div class="absolute -top-1 -right-1 w-3 h-3 bg-purple-500 rounded-full border-2 border-white"></div>
+        </div>
+      `,
+      className: 'custom-marker user-created-marker',
+      iconSize: [40, 40],
+      iconAnchor: [20, 20],
+      popupAnchor: [0, -20],
+    });
+  }
 
   return L.divIcon({
     html: `
@@ -152,7 +172,7 @@ export default function InteractiveMap({
             <Marker
               key={article.id}
               position={[article.latitude, article.longitude]}
-              icon={createCustomIcon(article.category, article.isBreaking || false)}
+              icon={createCustomIcon(article.category, article.isBreaking || false, article.isUserCreated || false)}
               eventHandlers={{
                 click: () => {
                   console.log(`🔗 Marker clicked: ${article.title}`);

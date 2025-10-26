@@ -218,6 +218,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/news/category/:category", async (req, res) => {
     try {
       const { category } = req.params;
+      
+      // Handle special category: MY_PINS - only show user-created pins from database
+      if (category === 'MY_PINS') {
+        const allArticles = await storage.getNewsArticles();
+        const userCreatedArticles = allArticles.filter(article => article.isUserCreated === true);
+        return res.json(userCreatedArticles);
+      }
+      
+      // Handle special category: GLOBAL - show all API news (not user-created)
+      if (category === 'GLOBAL') {
+        const allArticles = await storage.getNewsArticles();
+        const apiArticles = allArticles.filter(article => article.isUserCreated === false || article.isUserCreated === null);
+        return res.json(apiArticles);
+      }
+      
+      // Handle special category: TRENDING - show most viewed
+      if (category === 'TRENDING') {
+        const allArticles = await storage.getNewsArticles();
+        const sortedByViews = allArticles.sort((a, b) => (b.views || 0) - (a.views || 0));
+        return res.json(sortedByViews.slice(0, 20));
+      }
+      
+      // Handle special category: RECENT - show most recent
+      if (category === 'RECENT') {
+        const allArticles = await storage.getNewsArticles();
+        const sortedByDate = allArticles.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+        return res.json(sortedByDate.slice(0, 20));
+      }
+      
+      // For other categories, use API fallback
       let articles;
       try {
         try {
@@ -306,118 +336,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error fetching country headlines:", error);
       res.status(500).json({ message: error.message || "Failed to fetch country headlines" });
-    }
-  });
-
-  // Stripe checkout for Pro upgrade
-  app.post("/api/create-pro-checkout", isAuthenticated, async (req: any, res) => {
-    try {
-      const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
-      
-      if (!STRIPE_SECRET_KEY) {
-        const userId = req.user.claims.sub;
-        await storage.createProSubscription({
-          userId,
-          isActive: true,
-          stripeSessionId: 'mock-session-' + Date.now()
-        });
-        
-        return res.json({ 
-          sessionId: null, 
-          mockMode: true,
-          message: "Pro unlocked (demo mode)" 
-        });
-      }
-
-      const Stripe = (await import("stripe")).default;
-      const stripe = new Stripe(STRIPE_SECRET_KEY, {
-        apiVersion: "2024-06-20",
-      });
-
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
-        line_items: [
-          {
-            price_data: {
-              currency: 'usd',
-              product_data: {
-                name: 'KNEW Pro Access',
-                description: 'Unlock bias analysis, media ownership charts, and AI summaries',
-              },
-              unit_amount: 500, // $5.00
-            },
-            quantity: 1,
-          },
-        ],
-        mode: 'payment',
-        success_url: `${req.headers.origin}/?pro=success`,
-        cancel_url: `${req.headers.origin}/?pro=cancel`,
-        metadata: {
-          userId: userId,
-        },
-      });
-
-      res.json({ sessionId: session.id, mockMode: false });
-    } catch (error: any) {
-      console.error("Error creating checkout session:", error);
-      res.status(500).json({ message: error.message || "Failed to create checkout" });
-    }
-  });
-
-  // Stripe webhook for payment confirmation
-  app.post("/api/stripe-webhook", async (req, res) => {
-    const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
-    const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
-    
-    if (!STRIPE_SECRET_KEY || !STRIPE_WEBHOOK_SECRET) {
-      return res.status(400).send('Webhook not configured');
-    }
-
-    try {
-      const Stripe = (await import("stripe")).default;
-      const stripe = new Stripe(STRIPE_SECRET_KEY, {
-        apiVersion: "2024-06-20",
-      });
-
-      const sig = req.headers['stripe-signature'] as string;
-      const event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WEBHOOK_SECRET);
-
-      if (event.type === 'checkout.session.completed') {
-        const session = event.data.object as any;
-        const userId = session.metadata.userId;
-
-        await storage.createProSubscription({
-          userId,
-          isActive: true,
-          stripeSessionId: session.id
-        });
-
-        console.log(`✅ Pro subscription activated for user ${userId}`);
-      }
-
-      res.json({ received: true });
-    } catch (error: any) {
-      console.error("Webhook error:", error);
-      res.status(400).send(`Webhook Error: ${error.message}`);
-    }
-  });
-
-  // Pro subscription check (public endpoint - returns false if not authenticated)
-  app.get("/api/pro/status", async (req: any, res) => {
-    try {
-      // If not authenticated, return isPro: false
-      if (!req.isAuthenticated || !req.isAuthenticated()) {
-        return res.json({ isPro: false });
-      }
-
-      const userId = req.user.claims.sub;
-      const subscription = await storage.getProSubscription(userId);
-      res.json({ isPro: !!subscription && subscription.isActive });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to check Pro status" });
     }
   });
 
