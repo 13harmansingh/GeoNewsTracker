@@ -43,7 +43,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Helper function to try multiple news providers
   async function fetchNewsWithFallback() {
-    // Try NewsData.io first
+    // Try database first (already has worldwide distribution)
+    try {
+      const dbArticles = await storage.getNewsArticles();
+      if (dbArticles && dbArticles.length > 0) {
+        console.log(`✅ Using ${dbArticles.length} articles from database (worldwide distribution)`);
+        return dbArticles;
+      }
+    } catch (dbError) {
+      console.warn("Database fetch failed, trying APIs:", dbError);
+    }
+
+    // Try NewsData.io second
     try {
       const articles = await newsService.fetchWorldwideNews();
       console.log('✅ Fetched news from NewsData.io');
@@ -51,16 +62,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (newsDataError) {
       console.warn("NewsData.io failed, trying NewsAPI.org fallback:", newsDataError);
       
-      // Try NewsAPI.org as fallback
+      // Try NewsAPI.org as last resort with worldwide distribution
       try {
-        const newsApiArticles = await newsAPIService.getTopHeadlinesByCountry('us');
-        console.log('✅ Fetched news from NewsAPI.org fallback');
+        const newsApiArticles = await newsAPIService.getWorldwideHeadlines();
+        console.log('✅ Fetched news from NewsAPI.org fallback with worldwide distribution');
         return newsApiArticles;
       } catch (newsApiError) {
-        console.warn("NewsAPI.org also failed, using local storage:", newsApiError);
-        
-        // Last resort: database
-        return await storage.getNewsArticles();
+        console.warn("All news sources failed:", newsApiError);
+        return [];
       }
     }
   }
