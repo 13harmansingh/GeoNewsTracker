@@ -74,6 +74,99 @@ class MemStorage implements IStorage {
     this.currentOwnershipId = 1;
     this.currentReportId = 1;
     this.currentEventId = 1;
+
+    // Seed with sample articles for development/testing
+    this.seedSampleArticles();
+  }
+
+  private seedSampleArticles() {
+    const sampleArticles: InsertNewsArticle[] = [
+      {
+        title: "Tech Innovation Summit Concludes in San Francisco",
+        summary: "Major technology companies announced breakthrough AI developments at the annual innovation summit, with focus on ethical AI and sustainable computing solutions.",
+        content: "The three-day Tech Innovation Summit wrapped up today in San Francisco, bringing together industry leaders to discuss the future of artificial intelligence...",
+        category: "BREAKING",
+        latitude: 37.7749,
+        longitude: -122.4194,
+        location: "San Francisco, USA",
+        sourceUrl: "https://example.com/tech-summit",
+        sourceName: "Tech News Daily"
+      },
+      {
+        title: "Community Garden Project Transforms Urban Neighborhood",
+        summary: "Local residents in Brooklyn have transformed an abandoned lot into a thriving community garden, fostering neighborhood connections and providing fresh produce.",
+        content: "What was once an eyesore has become a green oasis in the heart of Brooklyn...",
+        category: "LOCAL",
+        latitude: 40.6782,
+        longitude: -73.9442,
+        location: "Brooklyn, New York",
+        sourceUrl: "https://example.com/community-garden",
+        sourceName: "Brooklyn Local News"
+      },
+      {
+        title: "Championship Match Draws Record Crowd",
+        summary: "The final game of the season attracted over 80,000 fans to the stadium, marking the highest attendance in the league's history.",
+        content: "Sports fans packed the stadium yesterday for what many are calling the game of the decade...",
+        category: "SPORTS",
+        latitude: 51.5074,
+        longitude: -0.1278,
+        location: "London, UK",
+        sourceUrl: "https://example.com/championship",
+        sourceName: "Sports World"
+      },
+      {
+        title: "Severe Weather Alert: Residents Urged to Prepare",
+        summary: "Meteorologists warn of approaching storm system expected to bring heavy rainfall and strong winds to the region over the next 48 hours.",
+        content: "Weather officials are closely monitoring a developing storm system...",
+        category: "BREAKING",
+        latitude: 35.6762,
+        longitude: 139.6503,
+        location: "Tokyo, Japan",
+        isBreaking: true,
+        sourceUrl: "https://example.com/weather-alert",
+        sourceName: "Weather Network"
+      },
+      {
+        title: "New Public Transit Line Opens Downtown",
+        summary: "City officials celebrate the opening of the new metro line, promising to reduce commute times and ease traffic congestion in the downtown area.",
+        content: "The ribbon-cutting ceremony marked a significant milestone for the city's transportation infrastructure...",
+        category: "LOCAL",
+        latitude: 48.8566,
+        longitude: 2.3522,
+        location: "Paris, France",
+        sourceUrl: "https://example.com/metro-opening",
+        sourceName: "Paris Metro News"
+      },
+      {
+        title: "Olympic Athlete Breaks World Record",
+        summary: "In a stunning display of athleticism, the champion shattered the previous world record by three seconds, securing gold in the 100-meter dash.",
+        content: "The crowd erupted as the timer showed a new world record...",
+        category: "SPORTS",
+        latitude: -33.8688,
+        longitude: 151.2093,
+        location: "Sydney, Australia",
+        isBreaking: true,
+        sourceUrl: "https://example.com/olympic-record",
+        sourceName: "Olympic News"
+      }
+    ];
+
+    sampleArticles.forEach(article => {
+      const id = this.currentNewsId++;
+      const newsArticle: NewsArticle = {
+        id,
+        ...article,
+        imageUrl: article.imageUrl ?? null,
+        isBreaking: article.isBreaking ?? false,
+        views: 0,
+        publishedAt: new Date(Date.now() - Math.random() * 86400000 * 2), // Random time within last 2 days
+        sourceUrl: article.sourceUrl ?? null,
+        sourceName: article.sourceName ?? null,
+        country: null,
+        externalId: null
+      };
+      this.newsArticles.set(id, newsArticle);
+    });
   }
 
   async getUser(id: string): Promise<User | undefined> {
