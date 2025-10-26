@@ -111,28 +111,39 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### October 26, 2025 - Seamless Consumer UX Enhancement
+### October 26, 2025 - Multi-Provider News System & Dashboard Redesign
+- ✅ Implemented multi-provider news fallback system for reliability
+- ✅ Converted KNEW dashboard from dark mode to iOS 26 light mode glassmorphism
 - ✅ Created ArticleExperienceContext for centralized article state management
-- ✅ Integrated Pro features directly into NewsPanel as vertical stack (not separate dashboard)
-- ✅ Redesigned Pro features with iOS 26 light mode styling (BiasAnalysisForm, OwnershipChart)
+- ✅ Integrated Pro features directly into NewsPanel as vertical stack
+- ✅ Redesigned all Pro features with iOS 26 light mode styling
 - ✅ Made related articles clickable - switch article context without closing drawer
 - ✅ Added hover tooltip preview for map markers (headline + category + time)
 - ✅ Fixed Stripe 401 error - made /api/pro/status public endpoint
 - ✅ Seeded PostgreSQL database with 6 sample articles for development/testing
-- ✅ End-to-end testing confirms seamless consumer journey works perfectly
+- ✅ Real news API integration working with automatic fallback
+
+**Multi-Provider News Architecture:**
+- Primary: NewsData.io API (rate-limited, graceful degradation)
+- Fallback 1: NewsAPI.org (US headlines, currently active)
+- Fallback 2: PostgreSQL database (seeded sample articles)
+- All endpoints use fetchNewsWithFallback() for reliability
+- Real news headlines: "College football scores", "Melissa expected to rapidly intensify", etc.
+
+**Dashboard Styling:**
+- Background: Light blue/purple gradient (from-blue-50 via-white to-purple-50)
+- Cards: Glass-morphism with light borders and shadows
+- Text: Dark colors on light backgrounds (text-gray-800, text-gray-600)
+- Event History Archive: iOS 26 light mode with colorful event badges
+- TRL Status cards: Light glassmorphism with blue/purple/green accents
 
 **Consumer Experience Flow:**
 - Hover marker → See tooltip preview (headline, category, timestamp)
 - Click marker → NewsPanel drawer slides in with article details
 - Scroll down → AI summary, bias analysis, ownership chart (with Pro upgrade CTAs)
 - Click related article → Switch to new article without closing drawer
-- All Pro features use iOS 26 light mode glassmorphism (not dark theme)
-
-**Architecture:**
-- ArticleExperienceContext manages selectedArticle, isPro, openArticle(), closeArticle()
-- NewsPanel vertical stack: article → AI summary → bias form → ownership chart → related articles
-- React Leaflet Tooltip component provides hover previews
-- Pro status endpoint gracefully handles unauthenticated users
+- Click map area → Fresh news markers appear with real API data
+- All features use iOS 26 light mode glassmorphism consistently
 
 ### October 9, 2025 - Authentication Integration
 - ✅ Integrated Replit Auth with OpenID Connect for user authentication
