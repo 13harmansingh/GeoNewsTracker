@@ -14,32 +14,32 @@ export function HistoryDashboard() {
   const getEventIcon = (eventType: string) => {
     switch (eventType) {
       case "news":
-        return <FileText className="w-4 h-4 text-blue-400" />;
+        return <FileText className="w-4 h-4 text-blue-600" />;
       case "tag":
-        return <TrendingUp className="w-4 h-4 text-purple-400" />;
+        return <TrendingUp className="w-4 h-4 text-purple-600" />;
       case "report":
-        return <MessageSquare className="w-4 h-4 text-green-400" />;
+        return <MessageSquare className="w-4 h-4 text-green-600" />;
       default:
-        return <Clock className="w-4 h-4 text-gray-400" />;
+        return <Clock className="w-4 h-4 text-gray-500" />;
     }
   };
 
   const getEventColor = (eventType: string) => {
     switch (eventType) {
       case "news":
-        return "bg-blue-900/20 border-blue-700";
+        return "bg-blue-50 border-blue-200";
       case "tag":
-        return "bg-purple-900/20 border-purple-700";
+        return "bg-purple-50 border-purple-200";
       case "report":
-        return "bg-green-900/20 border-green-700";
+        return "bg-green-50 border-green-200";
       default:
-        return "bg-gray-900/20 border-gray-700";
+        return "bg-gray-50 border-gray-200";
     }
   };
 
   if (isLoading) {
     return (
-      <Card className="bg-gradient-to-br from-gray-900 to-black border-gray-700">
+      <Card className="glass-morphism border-gray-200 shadow-lg">
         <CardHeader>
           <Skeleton className="h-6 w-48" />
         </CardHeader>
@@ -53,13 +53,13 @@ export function HistoryDashboard() {
   }
 
   return (
-    <Card className="bg-gradient-to-br from-gray-900 to-black border-gray-700" data-testid="card-history-dashboard">
+    <Card className="glass-morphism border-gray-200 shadow-lg" data-testid="card-history-dashboard">
       <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
-          <Clock className="w-5 h-5 text-yellow-400" />
+        <CardTitle className="text-gray-800 flex items-center gap-2">
+          <Clock className="w-5 h-5 text-blue-600" />
           Event History Archive
         </CardTitle>
-        <p className="text-sm text-gray-400">
+        <p className="text-sm text-gray-600">
           {history.length} events tracked
         </p>
       </CardHeader>
@@ -74,13 +74,13 @@ export function HistoryDashboard() {
               history.map((event) => (
                 <div
                   key={event.id}
-                  className={`p-4 rounded-lg border ${getEventColor(event.eventType)} transition-all hover:scale-105`}
+                  className={`p-4 rounded-lg border ${getEventColor(event.eventType)} transition-all hover:scale-105 hover:shadow-md`}
                   data-testid={`event-${event.id}`}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
                       {getEventIcon(event.eventType)}
-                      <Badge variant="outline" className="text-xs">
+                      <Badge variant="outline" className="text-xs bg-white">
                         {event.eventType.toUpperCase()}
                       </Badge>
                     </div>
@@ -89,7 +89,7 @@ export function HistoryDashboard() {
                     </span>
                   </div>
                   
-                  <p className="text-sm text-gray-300 mb-2">
+                  <p className="text-sm text-gray-700 mb-2">
                     {event.summary}
                   </p>
 
