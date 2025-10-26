@@ -68,14 +68,17 @@ class NewsOrchestrator {
     const cacheKey = 'diverse-global';
     
     if (this.isCacheValid(cacheKey)) {
-      console.log('✅ Using cached diverse news');
-      return this.cache.get(cacheKey)!.articles;
+      const cached = this.cache.get(cacheKey)!.articles;
+      console.log(`✅ Using cached diverse news (${cached.length} articles)`);
+      return cached;
     }
 
     try {
       // Fetch from NewsAPI (13 countries for diversity)
       console.log('🌍 Fetching diverse news from multiple sources...');
       const articles = await newsAPIService.getWorldwideHeadlines();
+      
+      console.log(`📥 Received ${articles.length} raw articles from NewsAPI`);
       
       if (!articles || articles.length === 0) {
         throw new Error('No articles from NewsAPI');
@@ -90,7 +93,7 @@ class NewsOrchestrator {
         timestamp: Date.now(),
       });
 
-      console.log(`✅ Fetched ${processedArticles.length} diverse news articles across multiple categories`);
+      console.log(`✅ Fetched ${processedArticles.length} diverse news articles after deduplication`);
       return processedArticles;
     } catch (error) {
       console.warn('NewsAPI failed, trying NewsData.io fallback:', error);
@@ -148,18 +151,20 @@ class NewsOrchestrator {
 
   // Process articles: deduplicate and categorize
   private processArticles(articles: NewsArticle[]): NewsArticle[] {
-    this.dedupeSet.clear();
+    const localDedupeSet = new Set<string>();
     const processed: NewsArticle[] = [];
+    let duplicateCount = 0;
 
     for (const article of articles) {
       const hash = this.getArticleHash(article);
       
       // Skip duplicates
-      if (this.dedupeSet.has(hash)) {
+      if (localDedupeSet.has(hash)) {
+        duplicateCount++;
         continue;
       }
 
-      this.dedupeSet.add(hash);
+      localDedupeSet.add(hash);
       
       // Detect and assign category
       const detectedCategory = this.detectCategory(article);
@@ -168,6 +173,10 @@ class NewsOrchestrator {
         ...article,
         category: detectedCategory,
       });
+    }
+
+    if (duplicateCount > 0) {
+      console.log(`🔄 Removed ${duplicateCount} duplicate articles`);
     }
 
     return processed;
