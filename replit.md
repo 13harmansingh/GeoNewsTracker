@@ -111,9 +111,24 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### October 26, 2025 - Late Night: Optional Authentication Update
+- ✅ **Authentication Now Optional**: Map is the default home page, accessible without login
+- ✅ **Direct Map Access**: Users can explore news and features without creating an account
+- ✅ **Optional Login**: Authentication available for users who want to create pins or personalize experience
+- ✅ **Landing Page Available**: Accessible at /landing route for marketing/onboarding purposes
+
+**Technical Implementation:**
+- App.tsx: Removed authentication gate, map now accessible to everyone
+- Landing page moved to /landing route (optional)
+- All features work without authentication (user pins saved with null userId if not logged in)
+
+**User Impact:**
+- No login required → Immediate access to map and all features
+- Optional authentication → Login available for personalized experience
+- Seamless UX → No barriers to entry, instant access to worldwide news
+
 ### October 26, 2025 - Night Session: EIC Grant Demo Preparation
 - ✅ **Removed Pro Upgrade System**: Deleted dashboard page, subscription logic, Stripe integration, ProUpgradeButton component
-- ✅ **Authentication Required**: Users must login to access map - Landing page shown to unauthenticated users
 - ✅ **Database Cleanup**: Deleted all 21 demo/seeded articles from PostgreSQL database
 - ✅ **Worldwide News**: NewsAPI now fetches from 13 countries (US, UK, India, Australia, Japan, Brazil, South Africa, UAE, Mexico, Singapore, Russia, Germany, France)
 - ✅ **Distinct User Pins**: User-created pins use purple gradient background, white star icon, and purple indicator dot
@@ -122,7 +137,6 @@ Preferred communication style: Simple, everyday language.
 - ✅ **Simplified Navigation**: Removed dashboard link, kept only logout button in NavigationBar
 
 **Technical Implementation:**
-- App.tsx: Added authentication gate - redirects to Landing page if !user
 - InteractiveMap.tsx: User-created pins styled with purple gradient and star icon when isUserCreated === true
 - ActionBar.tsx: New categories with updated icons (Star, Globe, TrendingUp, Clock)
 - NavigationBar.tsx: Removed dashboard route and button
@@ -131,8 +145,7 @@ Preferred communication style: Simple, everyday language.
 - BiasAnalysisForm.tsx & OwnershipChart.tsx: Removed Pro upgrade prompts and imports
 
 **User Impact:**
-- Login required → All users must authenticate to access map
-- No Pro paywall → All AI features available to authenticated users
+- No Pro paywall → All AI features available to all users
 - User pins → Visually distinct purple markers vs blue API markers
 - Clean database → No demo articles, only real news and user-created pins
 - Worldwide coverage → News from 13 countries instead of just US

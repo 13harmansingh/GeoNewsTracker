@@ -10,7 +10,7 @@ import MapPage from "@/pages/map";
 import Landing from "@/pages/landing";
 
 function Router() {
-  const { user, isLoading } = useAuth();
+  const { isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -20,14 +20,11 @@ function Router() {
     );
   }
 
-  // Require authentication to access the map
-  if (!user) {
-    return <Landing />;
-  }
-
+  // Authentication is optional - map is accessible to everyone
   return (
     <Switch>
       <Route path="/" component={MapPage} />
+      <Route path="/landing" component={Landing} />
       <Route component={NotFound} />
     </Switch>
   );
