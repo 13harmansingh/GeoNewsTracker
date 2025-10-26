@@ -71,7 +71,7 @@ const ICON_PATHS: Record<string, string> = {
   flask: '<path d="M7 2v2h1v14c0 2.21 1.79 4 4 4s4-1.79 4-4V4h1V2H7zm5 16c-1.1 0-2-.9-2-2V4h4v12c0 1.1-.9 2-2 2z"/>',
 };
 
-// Create iOS 26-style pin with gradient and depth
+// Create iOS 26-style pin with glassmorphism and tinted glass
 export function createApplePinIcon(
   category: string, 
   isUserCreated: boolean = false
@@ -82,6 +82,10 @@ export function createApplePinIcon(
   
   const iconPath = ICON_PATHS[design.icon] || ICON_PATHS.globe;
   
+  // Convert hex to rgba for tinted glass effect
+  const fromRgba = hexToRgba(design.from, 0.25); // Very translucent
+  const toRgba = hexToRgba(design.to, 0.35);     // Slightly more opaque
+  
   return L.divIcon({
     html: `
       <div class="apple-pin-wrapper" style="animation: pinDrop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);">
@@ -91,7 +95,7 @@ export function createApplePinIcon(
           inset: -8px;
           background: radial-gradient(circle, ${design.shadow} 0%, transparent 70%);
           filter: blur(12px);
-          opacity: 0.6;
+          opacity: 0.5;
           animation: pulseGlow 2s ease-in-out infinite;
         "></div>
         
@@ -100,35 +104,61 @@ export function createApplePinIcon(
           position: relative;
           width: 48px;
           height: 48px;
-          background: linear-gradient(135deg, ${design.from} 0%, ${design.to} 100%);
+          background: linear-gradient(135deg, ${fromRgba} 0%, ${toRgba} 100%);
           border-radius: 50%;
+          border: 1.5px solid rgba(255, 255, 255, 0.35);
           box-shadow: 
-            0 4px 16px ${design.shadow},
-            0 2px 8px rgba(0, 0, 0, 0.1),
-            inset 0 1px 2px rgba(255, 255, 255, 0.3);
+            0 8px 32px ${design.shadow},
+            0 4px 16px rgba(0, 0, 0, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.5),
+            inset 0 -1px 0 rgba(0, 0, 0, 0.1);
           display: flex;
           align-items: center;
           justify-content: center;
-          backdrop-filter: blur(10px);
+          backdrop-filter: blur(20px) saturate(180%);
+          -webkit-backdrop-filter: blur(20px) saturate(180%);
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         ">
-          <!-- Inner highlight for depth -->
+          <!-- Glass shine effect (top) -->
           <div style="
             position: absolute;
-            top: 3px;
-            left: 3px;
-            right: 3px;
-            height: 18px;
-            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.4), transparent);
-            border-radius: 50% 50% 0 0;
+            top: 2px;
+            left: 4px;
+            right: 4px;
+            height: 20px;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.1));
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
             pointer-events: none;
+            filter: blur(1px);
+          "></div>
+          
+          <!-- Glass reflection (bottom) -->
+          <div style="
+            position: absolute;
+            bottom: 2px;
+            left: 4px;
+            right: 4px;
+            height: 12px;
+            background: linear-gradient(to top, rgba(255, 255, 255, 0.15), transparent);
+            border-radius: 50%;
+            pointer-events: none;
+          "></div>
+          
+          <!-- Colored tint overlay -->
+          <div style="
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, ${hexToRgba(design.from, 0.4)} 0%, ${hexToRgba(design.to, 0.5)} 100%);
+            border-radius: 50%;
+            pointer-events: none;
+            mix-blend-mode: overlay;
           "></div>
           
           <!-- Icon -->
           <svg class="pin-icon" width="24" height="24" viewBox="0 0 24 24" fill="white" style="
             position: relative;
             z-index: 2;
-            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
           ">
             ${iconPath}
           </svg>
@@ -142,10 +172,13 @@ export function createApplePinIcon(
             right: -2px;
             width: 14px;
             height: 14px;
-            background: linear-gradient(135deg, #FFD60A, #FF9500);
+            background: linear-gradient(135deg, rgba(255, 214, 10, 0.9), rgba(255, 149, 0, 0.9));
             border-radius: 50%;
-            border: 2px solid white;
-            box-shadow: 0 2px 8px rgba(255, 214, 10, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 
+              0 2px 8px rgba(255, 214, 10, 0.5),
+              inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(10px);
             animation: indicatorPulse 1.5s ease-in-out infinite;
           "></div>
         ` : ''}
@@ -156,6 +189,14 @@ export function createApplePinIcon(
     iconAnchor: [24, 48],
     popupAnchor: [0, -48],
   });
+}
+
+// Helper function to convert hex to rgba
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 // Add CSS animations to the document
@@ -206,9 +247,11 @@ export function injectPinAnimations() {
     .apple-pin-marker:hover .pin-container {
       transform: scale(1.15) translateY(-4px);
       box-shadow: 
-        0 8px 24px rgba(0, 0, 0, 0.2),
-        0 4px 12px rgba(0, 0, 0, 0.15),
-        inset 0 1px 2px rgba(255, 255, 255, 0.4) !important;
+        0 12px 40px rgba(0, 0, 0, 0.3),
+        0 6px 20px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1) !important;
+      border-color: rgba(255, 255, 255, 0.5) !important;
     }
     
     .apple-pin-marker:active .pin-container {
