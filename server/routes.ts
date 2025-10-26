@@ -85,7 +85,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create fresh news markers at clicked location (MUST be before /api/news/:id)
-  app.get("/api/news/location-fresh", async (req, res) => {
+  app.get("/api/news/location-fresh", async (req: any, res) => {
     try {
       const { lat, lng, category } = req.query;
 
@@ -100,8 +100,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid coordinates" });
       }
 
-      // Clear any cached results to prevent mixing
-      console.log(`🗑️ Clearing cache for fresh location request at ${latitude}, ${longitude}`);
+      console.log(`📍 Creating persistent pins at ${latitude}, ${longitude}`);
 
       let articles;
       try {
@@ -121,26 +120,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         articles = await storage.getNewsArticles();
       }
 
-      // Create a small set of unique news items positioned near the clicked location
-      const uniqueNews = articles.slice(0, 3).map((article, index) => {
-        const randomOffset = 0.05; // Small random offset
+      // Get current user ID if authenticated
+      const userId = (req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub) || null;
+
+      // Create and save unique news items to database
+      const savedArticles = [];
+      for (let index = 0; index < Math.min(3, articles.length); index++) {
+        const article = articles[index];
+        const randomOffset = 0.05;
         const offsetLat = latitude + (Math.random() - 0.5) * randomOffset;
         const offsetLng = longitude + (Math.random() - 0.5) * randomOffset;
 
-        return {
-          ...article,
-          id: Date.now() + index, // Unique ID to prevent conflicts
+        // Save to database as user-created pin
+        const savedArticle = await storage.createNewsArticle({
+          title: article.title,
+          summary: article.summary || article.title,
+          content: article.content || article.summary || article.title,
+          category: article.category,
           latitude: offsetLat,
           longitude: offsetLng,
-          location: `Custom Location ${index + 1}`
-        };
-      });
+          imageUrl: article.imageUrl || null,
+          isBreaking: article.isBreaking || false,
+          views: 0,
+          location: article.location || `Location at ${offsetLat.toFixed(4)}, ${offsetLng.toFixed(4)}`,
+          sourceUrl: article.sourceUrl || null,
+          sourceName: article.sourceName || null,
+          country: article.country || null,
+          language: article.language || "en",
+          externalId: article.externalId || `user-created-${Date.now()}-${index}`,
+          userId: userId,
+          isUserCreated: true,
+        });
 
-      console.log(`Created ${uniqueNews.length} fresh news markers at ${latitude}, ${longitude} for category: ${category || 'all'}`);
-      res.json(uniqueNews);
+        savedArticles.push(savedArticle);
+      }
+
+      console.log(`✅ Saved ${savedArticles.length} persistent pins to database at ${latitude}, ${longitude}`);
+      res.json(savedArticles);
     } catch (error) {
-      console.error("Error creating location markers:", error);
-      res.status(500).json({ message: "Failed to create location markers" });
+      console.error("Error creating persistent pins:", error);
+      res.status(500).json({ message: "Failed to create persistent pins" });
     }
   });
 
