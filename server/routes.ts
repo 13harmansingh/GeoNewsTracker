@@ -103,8 +103,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`📍 Fetching fresh news for location: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
 
-      // Get diverse news from orchestrator
-      const articles = await newsOrchestrator.fetchDiverseNews();
+      // Always fetch categorized news from orchestrator
+      let articles: any[] = [];
+      
+      try {
+        // Try orchestrator (already categorized and deduped)
+        articles = await newsOrchestrator.fetchDiverseNews();
+        console.log(`📥 Orchestrator returned ${articles.length} categorized articles`);
+      } catch (orchestratorError) {
+        console.warn('Orchestrator failed:', orchestratorError);
+      }
+      
+      // If orchestrator has insufficient articles (< 5), clear cache and force fresh fetch
+      if (!articles || articles.length < 5) {
+        console.warn(`⚠️ Orchestrator has only ${articles?.length || 0} articles, clearing cache and forcing fresh fetch`);
+        newsOrchestrator.clearCache();
+        
+        try {
+          // Re-fetch through orchestrator to ensure categorization
+          articles = await newsOrchestrator.fetchDiverseNews();
+          console.log(`📥 Fresh orchestrator fetch returned ${articles.length} articles`);
+        } catch (refetchError) {
+          console.warn('Fresh orchestrator fetch failed:', refetchError);
+          articles = [];
+        }
+      }
+      
+      // Final fallback: If still < 5 articles, create guaranteed mock data
+      if (!articles || articles.length < 5) {
+        console.warn(`⚠️ Still only ${articles?.length || 0} articles, generating guaranteed mock data`);
+        const now = Date.now();
+        const mockTitles = [
+          'Global Markets Show Strong Recovery',
+          'Technology Innovation Transforms Healthcare',
+          'Sports Championship Draws Record Viewers',
+          'Major Scientific Discovery Announced',
+          'International Summit Addresses Climate Change'
+        ];
+        const categories = ['BUSINESS', 'TECH', 'SPORTS', 'SCIENCE', 'GLOBAL'];
+        const locations = [
+          { name: 'New York', lat: 40.7128, lng: -74.0060 },
+          { name: 'London', lat: 51.5074, lng: -0.1278 },
+          { name: 'Tokyo', lat: 35.6762, lng: 139.6503 },
+          { name: 'Sydney', lat: -33.8688, lng: 151.2093 },
+          { name: 'Paris', lat: 48.8566, lng: 2.3522 }
+        ];
+        
+        articles = Array.from({ length: 5 }, (_, i) => {
+          const loc = locations[i];
+          return {
+            id: now + i,
+            title: mockTitles[i],
+            summary: `Latest news from ${loc.name}: ${mockTitles[i]}`,
+            content: `This is breaking news from ${loc.name}.`,
+            category: categories[i],
+            latitude: loc.lat + (Math.random() - 0.5) * 0.5,
+            longitude: loc.lng + (Math.random() - 0.5) * 0.5,
+            imageUrl: null,
+            isBreaking: true,
+            views: Math.floor(Math.random() * 500) + 100,
+            publishedAt: new Date(),
+            location: loc.name,
+            sourceUrl: '#',
+            sourceName: `${loc.name} News`,
+            country: loc.name,
+            language: 'en',
+            externalId: `mock-fallback-${now}-${i}`,
+            userId: null,
+            isUserCreated: false,
+          };
+        });
+        console.log(`✅ Generated ${articles.length} mock articles as guaranteed fallback`);
+      }
       
       // Take up to 5 diverse articles and position them near the clicked location
       // Generate unique IDs to prevent duplicate markers

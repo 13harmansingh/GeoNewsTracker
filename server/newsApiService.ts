@@ -65,7 +65,7 @@ class NewsAPIService {
     try {
       // Fetch from multiple countries for diverse worldwide coverage
       const countries = ['us', 'gb', 'in', 'au', 'jp', 'br', 'za', 'ae', 'mx', 'sg', 'ru', 'de', 'fr'];
-      const articlesPerCountry = 1; // Fetch 1 article per country for variety
+      const articlesPerCountry = 3; // Fetch 3 articles per country for more variety
       
       console.log(`Fetching headlines from ${countries.length} countries for worldwide distribution...`);
       
@@ -97,8 +97,9 @@ class NewsAPIService {
       }
 
       // Distribute articles across worldwide locations
-      return allArticles.slice(0, WORLDWIDE_LOCATIONS.length).map((article, index) => {
-        const location = WORLDWIDE_LOCATIONS[index];
+      // Take up to 30 articles (more than we need for diversity)
+      return allArticles.slice(0, 30).map((article, index) => {
+        const location = WORLDWIDE_LOCATIONS[index % WORLDWIDE_LOCATIONS.length]; // Cycle through locations
         const randomOffset = 0.5;
         const lat = location.lat + (Math.random() - 0.5) * randomOffset;
         const lng = location.lng + (Math.random() - 0.5) * randomOffset;
