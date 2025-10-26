@@ -138,18 +138,32 @@ export default function MapPage() {
   };
 
   const handleCenterLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setMapCenter([latitude, longitude]);
-          setMapZoom(13);
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-        }
-      );
+    if (!navigator.geolocation) {
+      console.error('Geolocation is not supported by your browser');
+      return;
     }
+
+    console.log('📍 Requesting user location...');
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        console.log(`✅ Location found: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+        setMapCenter([latitude, longitude]);
+        setMapZoom(13);
+      },
+      (error) => {
+        console.error('❌ Location error:', error.message);
+        // Fallback to NYC if location fails
+        setMapCenter([40.7589, -73.9851]);
+        setMapZoom(12);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000, // 10 second timeout
+        maximumAge: 0, // Don't use cached position
+      }
+    );
   };
 
   // Get related news (same category or nearby location)

@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { newsService } from "./newsService";
 import { newsAPIService } from "./newsApiService";
+import { newsOrchestrator } from "./newsOrchestrator";
 import { biasDetectionService } from "./biasDetectionService";
 import { MOCK_OWNERSHIP_DATA } from "./ownershipData";
 import { z } from "zod";
@@ -41,40 +42,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Helper function to try multiple news providers
+  // Helper function to get diverse, categorized news
   async function fetchNewsWithFallback() {
-    // Try database first (already has worldwide distribution)
+    // Try database first
     try {
       const dbArticles = await storage.getNewsArticles();
       if (dbArticles && dbArticles.length > 0) {
-        console.log(`✅ Using ${dbArticles.length} articles from database (worldwide distribution)`);
+        console.log(`✅ Using ${dbArticles.length} articles from database`);
         return dbArticles;
       }
     } catch (dbError) {
       console.warn("Database fetch failed, trying APIs:", dbError);
     }
 
-    // Try NewsData.io second
+    // Use the news orchestrator for diverse, categorized news
     try {
-      const articles = await newsService.fetchWorldwideNews();
-      console.log('✅ Fetched news from NewsData.io');
-      return articles;
-    } catch (newsDataError) {
-      console.warn("NewsData.io failed, trying NewsAPI.org fallback:", newsDataError);
-      
-      // Try NewsAPI.org as last resort with worldwide distribution
-      try {
-        const newsApiArticles = await newsAPIService.getWorldwideHeadlines();
-        console.log('✅ Fetched news from NewsAPI.org fallback with worldwide distribution');
-        return newsApiArticles;
-      } catch (newsApiError) {
-        console.warn("All news sources failed:", newsApiError);
-        return [];
+      const articles = await newsOrchestrator.fetchDiverseNews();
+      if (articles && articles.length > 0) {
+        return articles;
       }
+    } catch (error) {
+      console.warn("News orchestrator failed:", error);
+    }
+
+    // Final fallback
+    try {
+      const fallbackArticles = await newsAPIService.getWorldwideHeadlines();
+      return fallbackArticles;
+    } catch (finalError) {
+      console.error("All news sources failed:", finalError);
+      return [];
     }
   }
 
-  // Get all news articles
+  // Get all news articles with diverse categories
   app.get("/api/news", async (req, res) => {
     try {
       const articles = await fetchNewsWithFallback();
@@ -84,10 +85,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create fresh news markers at clicked location (MUST be before /api/news/:id)
+  // Create fresh news markers at clicked location - don't save to DB
   app.get("/api/news/location-fresh", async (req: any, res) => {
     try {
-      const { lat, lng, category } = req.query;
+      const { lat, lng } = req.query;
 
       if (!lat || !lng) {
         return res.status(400).json({ message: "Latitude and longitude required" });
@@ -100,66 +101,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid coordinates" });
       }
 
-      console.log(`📍 Creating persistent pins at ${latitude}, ${longitude}`);
+      console.log(`📍 Fetching fresh news for location: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
 
-      let articles;
-      try {
-        // Get fresh news based on category if provided
-        if (category && typeof category === 'string' && category.toLowerCase() !== 'all') {
-          try {
-            articles = await newsService.getNewsByCategory(category);
-          } catch (newsDataError) {
-            console.warn("NewsData.io failed, trying NewsAPI.org fallback");
-            articles = await newsAPIService.getTopHeadlinesByCountry('us');
-          }
-        } else {
-          articles = await fetchNewsWithFallback();
-        }
-      } catch (apiError) {
-        console.warn("All APIs failed, using local storage:", apiError);
-        articles = await storage.getNewsArticles();
-      }
-
-      // Get current user ID if authenticated
-      const userId = (req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub) || null;
-
-      // Create and save unique news items to database
-      const savedArticles = [];
-      for (let index = 0; index < Math.min(3, articles.length); index++) {
-        const article = articles[index];
-        const randomOffset = 0.05;
+      // Get diverse news from orchestrator
+      const articles = await newsOrchestrator.fetchDiverseNews();
+      
+      // Take up to 5 diverse articles and position them near the clicked location
+      // Generate unique IDs to prevent duplicate markers
+      const locationArticles = articles.slice(0, 5).map((article, index) => {
+        const randomOffset = 0.02;
         const offsetLat = latitude + (Math.random() - 0.5) * randomOffset;
         const offsetLng = longitude + (Math.random() - 0.5) * randomOffset;
+        const timestamp = Date.now();
 
-        // Save to database as user-created pin
-        const savedArticle = await storage.createNewsArticle({
-          title: article.title,
-          summary: article.summary || article.title,
-          content: article.content || article.summary || article.title,
-          category: article.category,
+        return {
+          ...article,
+          id: timestamp + index, // Unique ID for each location-based article
           latitude: offsetLat,
           longitude: offsetLng,
-          imageUrl: article.imageUrl || null,
-          isBreaking: article.isBreaking || false,
-          views: 0,
-          location: article.location || `Location at ${offsetLat.toFixed(4)}, ${offsetLng.toFixed(4)}`,
-          sourceUrl: article.sourceUrl || null,
-          sourceName: article.sourceName || null,
-          country: article.country || null,
-          language: article.language || "en",
-          externalId: article.externalId || `user-created-${Date.now()}-${index}`,
-          userId: userId,
-          isUserCreated: true,
-        });
+          isUserCreated: false,
+          userId: null,
+          externalId: `location-${timestamp}-${index}`,
+        };
+      });
 
-        savedArticles.push(savedArticle);
-      }
-
-      console.log(`✅ Saved ${savedArticles.length} persistent pins to database at ${latitude}, ${longitude}`);
-      res.json(savedArticles);
+      console.log(`✅ Returning ${locationArticles.length} diverse news articles for location`);
+      res.json(locationArticles);
     } catch (error) {
-      console.error("Error creating persistent pins:", error);
-      res.status(500).json({ message: "Failed to create persistent pins" });
+      console.error("Error fetching location news:", error);
+      res.status(500).json({ message: "Failed to fetch location news" });
     }
   });
 
@@ -243,7 +213,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Handle special category: RECENT - show most recent
       if (category === 'RECENT') {
         const allArticles = await storage.getNewsArticles();
-        const sortedByDate = allArticles.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+        const sortedByDate = allArticles.sort((a, b) => {
+          const dateA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
+          const dateB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+          return dateB - dateA;
+        });
         return res.json(sortedByDate.slice(0, 20));
       }
       
