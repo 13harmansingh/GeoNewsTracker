@@ -139,29 +139,55 @@ export default function MapPage() {
 
   const handleCenterLocation = () => {
     if (!navigator.geolocation) {
-      console.error('Geolocation is not supported by your browser');
+      console.error('❌ Geolocation is not supported by your browser');
+      alert('Geolocation is not supported by your browser. Centering on New York City.');
+      setMapCenter([40.7589, -73.9851]);
+      setMapZoom(12);
       return;
     }
 
     console.log('📍 Requesting user location...');
     
+    // Show loading state
+    const timeoutId = setTimeout(() => {
+      console.warn('⏱️ Location request taking too long, falling back to NYC');
+      setMapCenter([40.7589, -73.9851]);
+      setMapZoom(12);
+    }, 8000); // 8 second backup timeout
+    
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        clearTimeout(timeoutId);
         const { latitude, longitude } = position.coords;
         console.log(`✅ Location found: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
         setMapCenter([latitude, longitude]);
         setMapZoom(13);
       },
       (error) => {
-        console.error('❌ Location error:', error.message);
+        clearTimeout(timeoutId);
+        console.error('❌ Location error:', error.message, error.code);
+        
+        // Provide specific error messages
+        let errorMsg = 'Unable to get location. ';
+        if (error.code === 1) {
+          errorMsg += 'Location access denied.';
+        } else if (error.code === 2) {
+          errorMsg += 'Location unavailable.';
+        } else if (error.code === 3) {
+          errorMsg += 'Location request timed out.';
+        }
+        errorMsg += ' Centering on New York City.';
+        
+        console.warn(errorMsg);
+        
         // Fallback to NYC if location fails
         setMapCenter([40.7589, -73.9851]);
         setMapZoom(12);
       },
       {
-        enableHighAccuracy: true,
-        timeout: 10000, // 10 second timeout
-        maximumAge: 0, // Don't use cached position
+        enableHighAccuracy: false, // Changed to false for faster response
+        timeout: 7000, // 7 second timeout
+        maximumAge: 60000, // Allow cached position up to 1 minute old
       }
     );
   };
