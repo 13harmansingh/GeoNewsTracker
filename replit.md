@@ -111,7 +111,28 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### October 26, 2025 - Multi-Provider News System & Dashboard Redesign
+### October 26, 2025 - Evening Session: Persistent Pins & AI Improvements
+- ✅ **Worldwide News Distribution**: Fixed initial map load to show database articles globally (San Francisco, Brooklyn, London, Tokyo, Paris, Sydney)
+- ✅ **Persistent User Pins**: Map clicks now save to database permanently with `userId` and `isUserCreated` fields
+- ✅ **Auto-Apply AI Bias Tags**: High-confidence predictions (>75%) automatically save without manual confirmation
+- ✅ **AI Summary Caching**: Cached summaries load from database to avoid repeated API calls
+- ✅ **Demo-Friendly Auth**: Removed authentication requirements from bias/ownership endpoints for EIC demo
+- ✅ **Database Improvements**: Added userId and isUserCreated columns to newsArticles table
+
+**Technical Implementation:**
+- Database-first fallback: PostgreSQL → NewsData.io → NewsAPI.org
+- Persistent pins endpoint saves 3 articles per map click with random offset positioning
+- BiasAnalysisForm loads cached AI results from existing analysis to avoid re-analysis
+- Auto-save mutation accepts fresh AI payload to prevent stale state bugs
+- All bias endpoints work without authentication for seamless demo experience
+
+**User Impact:**
+- Click map → Pins persist across sessions and appear for all users
+- View article → AI analysis cached, no repeated API calls
+- High-confidence AI tags → Automatically applied and saved
+- Demo mode → No login required for AI features and media ownership
+
+### October 26, 2025 - Morning Session: Multi-Provider News System & Dashboard Redesign
 - ✅ Implemented multi-provider news fallback system for reliability
 - ✅ Converted KNEW dashboard from dark mode to iOS 26 light mode glassmorphism
 - ✅ Created ArticleExperienceContext for centralized article state management
