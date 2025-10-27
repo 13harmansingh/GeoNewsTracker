@@ -15,9 +15,9 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
   
   // News methods
-  getNewsArticles(): Promise<NewsArticle[]>;
-  getNewsArticlesByLocation(lat: number, lng: number, radius?: number): Promise<NewsArticle[]>;
-  getNewsArticlesByCategory(category: string): Promise<NewsArticle[]>;
+  getNewsArticles(language?: string): Promise<NewsArticle[]>;
+  getNewsArticlesByLocation(lat: number, lng: number, radius?: number, language?: string): Promise<NewsArticle[]>;
+  getNewsArticlesByCategory(category: string, language?: string): Promise<NewsArticle[]>;
   getNewsArticle(id: number): Promise<NewsArticle | undefined>;
   createNewsArticle(article: InsertNewsArticle): Promise<NewsArticle>;
   incrementViews(id: number): Promise<void>;
@@ -163,7 +163,10 @@ class MemStorage implements IStorage {
         sourceUrl: article.sourceUrl ?? null,
         sourceName: article.sourceName ?? null,
         country: null,
-        externalId: null
+        language: "en", // Default language for seeded articles
+        externalId: null,
+        userId: null,
+        isUserCreated: false
       };
       this.newsArticles.set(id, newsArticle);
     });
@@ -187,23 +190,33 @@ class MemStorage implements IStorage {
     return user;
   }
 
-  async getNewsArticles(): Promise<NewsArticle[]> {
-    return Array.from(this.newsArticles.values());
+  async getNewsArticles(language?: string): Promise<NewsArticle[]> {
+    const articles = Array.from(this.newsArticles.values());
+    if (!language) return articles;
+    return articles.filter(article => article.language === language);
   }
 
-  async getNewsArticlesByLocation(lat: number, lng: number, radius: number = 0.01): Promise<NewsArticle[]> {
-    return Array.from(this.newsArticles.values()).filter((article: NewsArticle) => {
+  async getNewsArticlesByLocation(lat: number, lng: number, radius: number = 0.01, language?: string): Promise<NewsArticle[]> {
+    let articles = Array.from(this.newsArticles.values()).filter((article: NewsArticle) => {
       const distance = Math.sqrt(
         Math.pow(article.latitude - lat, 2) + Math.pow(article.longitude - lng, 2)
       );
       return distance <= radius;
     });
+    if (language) {
+      articles = articles.filter(article => article.language === language);
+    }
+    return articles;
   }
 
-  async getNewsArticlesByCategory(category: string): Promise<NewsArticle[]> {
-    return Array.from(this.newsArticles.values()).filter(
+  async getNewsArticlesByCategory(category: string, language?: string): Promise<NewsArticle[]> {
+    let articles = Array.from(this.newsArticles.values()).filter(
       (article: NewsArticle) => article.category.toLowerCase() === category.toLowerCase()
     );
+    if (language) {
+      articles = articles.filter(article => article.language === language);
+    }
+    return articles;
   }
 
   async getNewsArticle(id: number): Promise<NewsArticle | undefined> {
@@ -373,25 +386,35 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async getNewsArticles(): Promise<NewsArticle[]> {
-    return await db.select().from(newsArticles);
+  async getNewsArticles(language?: string): Promise<NewsArticle[]> {
+    const articles = await db.select().from(newsArticles);
+    if (!language) return articles;
+    return articles.filter(article => article.language === language);
   }
 
-  async getNewsArticlesByLocation(lat: number, lng: number, radius: number = 0.01): Promise<NewsArticle[]> {
+  async getNewsArticlesByLocation(lat: number, lng: number, radius: number = 0.01, language?: string): Promise<NewsArticle[]> {
     const articles = await db.select().from(newsArticles);
-    return articles.filter((article: NewsArticle) => {
+    let filtered = articles.filter((article: NewsArticle) => {
       const distance = Math.sqrt(
         Math.pow(article.latitude - lat, 2) + Math.pow(article.longitude - lng, 2)
       );
       return distance <= radius;
     });
+    if (language) {
+      filtered = filtered.filter(article => article.language === language);
+    }
+    return filtered;
   }
 
-  async getNewsArticlesByCategory(category: string): Promise<NewsArticle[]> {
+  async getNewsArticlesByCategory(category: string, language?: string): Promise<NewsArticle[]> {
     const articles = await db.select().from(newsArticles);
-    return articles.filter(
+    let filtered = articles.filter(
       (article: NewsArticle) => article.category.toLowerCase() === category.toLowerCase()
     );
+    if (language) {
+      filtered = filtered.filter(article => article.language === language);
+    }
+    return filtered;
   }
 
   async getNewsArticle(id: number): Promise<NewsArticle | undefined> {

@@ -46,11 +46,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   async function fetchNewsWithFallback(language: string = "en") {
     const supportedLanguage = ["en", "pt", "es", "fr", "de"].includes(language) ? language as any : "en";
     
-    // Try database first (language-agnostic for now)
+    // Try database first (with language filtering)
     try {
-      const dbArticles = await storage.getNewsArticles();
+      const dbArticles = await storage.getNewsArticles(supportedLanguage);
       if (dbArticles && dbArticles.length > 0) {
-        console.log(`✅ Using ${dbArticles.length} articles from database`);
+        console.log(`✅ Using ${dbArticles.length} articles from database (language: ${supportedLanguage})`);
         return dbArticles;
       }
     } catch (dbError) {
@@ -219,6 +219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/news/location", async (req, res) => {
     try {
       const { lat, lng, radius, country } = req.query;
+      const language = (req.query.language as string) || "en";
 
       let articles;
       try {
@@ -233,7 +234,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         } else {
           // Get worldwide news and filter by location if coordinates provided
-          articles = await fetchNewsWithFallback();
+          articles = await fetchNewsWithFallback(language);
 
           if (lat && lng) {
             const latitude = parseFloat(lat as string);
@@ -257,7 +258,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const longitude = lng ? parseFloat(lng as string) : 0;
         const searchRadius = radius ? parseFloat(radius as string) : 0.01;
 
-        articles = await storage.getNewsArticlesByLocation(latitude, longitude, searchRadius);
+        articles = await storage.getNewsArticlesByLocation(latitude, longitude, searchRadius, language);
       }
 
       res.json(articles);
@@ -270,31 +271,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/news/category/:category", async (req, res) => {
     try {
       const { category } = req.params;
+      const language = (req.query.language as string) || "en";
       
       // Handle special category: MY_PINS - only show user-created pins from database
       if (category === 'MY_PINS') {
-        const allArticles = await storage.getNewsArticles();
+        const allArticles = await storage.getNewsArticles(language);
         const userCreatedArticles = allArticles.filter(article => article.isUserCreated === true);
         return res.json(userCreatedArticles);
       }
       
       // Handle special category: GLOBAL - show all API news (not user-created)
       if (category === 'GLOBAL') {
-        const allArticles = await storage.getNewsArticles();
+        const allArticles = await storage.getNewsArticles(language);
         const apiArticles = allArticles.filter(article => article.isUserCreated === false || article.isUserCreated === null);
         return res.json(apiArticles);
       }
       
       // Handle special category: TRENDING - show most viewed
       if (category === 'TRENDING') {
-        const allArticles = await storage.getNewsArticles();
+        const allArticles = await storage.getNewsArticles(language);
         const sortedByViews = allArticles.sort((a, b) => (b.views || 0) - (a.views || 0));
         return res.json(sortedByViews.slice(0, 20));
       }
       
       // Handle special category: RECENT - show most recent
       if (category === 'RECENT') {
-        const allArticles = await storage.getNewsArticles();
+        const allArticles = await storage.getNewsArticles(language);
         const sortedByDate = allArticles.sort((a, b) => {
           const dateA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
           const dateB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
@@ -314,7 +316,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       } catch (apiError) {
         console.warn("All APIs failed, using local storage:", apiError);
-        articles = await storage.getNewsArticlesByCategory(category);
+        articles = await storage.getNewsArticlesByCategory(category, language);
       }
       res.json(articles);
     } catch (error) {
@@ -326,6 +328,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/news/search", async (req, res) => {
     try {
       const { q } = req.query;
+      const language = (req.query.language as string) || "en";
       console.log('🔍 Search API called with query:', q);
       
       if (!q || typeof q !== 'string' || !q.trim()) {
@@ -342,7 +345,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('✅ Found', articles.length, 'articles from API search');
       } catch (apiError) {
         console.warn("Failed to search news from API, using local storage:", apiError);
-        const allArticles = await storage.getNewsArticles();
+        const allArticles = await storage.getNewsArticles(language);
         const searchTerm = searchQuery.toLowerCase();
         
         articles = allArticles.filter(article => 
