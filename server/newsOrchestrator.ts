@@ -2,6 +2,7 @@ import type { NewsArticle } from "@shared/schema";
 import { newsAPIService, type SupportedLanguage } from "./newsApiService";
 import { newsService } from "./newsService";
 import { redisCache, CacheKeys } from "./redisCache";
+import { worldNewsApi, type SentimentMetrics } from "./worldNewsApi";
 
 // Category detection keywords
 const CATEGORY_KEYWORDS = {
@@ -25,6 +26,35 @@ class NewsOrchestrator {
   private cache: Map<string, CachedNews> = new Map();
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
   private dedupeSet: Set<string> = new Set();
+
+  // Get sentiment metrics for a language (KNEW Global Mood Meter)
+  async getSentimentMetrics(language: SupportedLanguage = "en"): Promise<SentimentMetrics> {
+    const sentimentKey = `sentiment:${language}`;
+    
+    // Try Redis cache first
+    const cachedSentiment = await redisCache.get<SentimentMetrics>(sentimentKey);
+    if (cachedSentiment) {
+      console.log(`✅ Using cached sentiment metrics for ${language}: ${cachedSentiment.positive}% positive`);
+      return cachedSentiment;
+    }
+
+    // If no cache, fetch fresh news which will populate sentiment
+    try {
+      const { sentiment } = await worldNewsApi.searchNews({ language, number: 20 });
+      await redisCache.set(sentimentKey, sentiment, 300);
+      return sentiment;
+    } catch (error) {
+      console.error('Failed to fetch sentiment:', error);
+      // Return neutral sentiment as fallback
+      return {
+        positive: 33,
+        neutral: 34,
+        negative: 33,
+        averageScore: 0,
+        totalArticles: 0
+      };
+    }
+  }
 
   // Detect category from article content
   detectCategory(article: { title: string; summary: string; category?: string }): string {
@@ -64,7 +94,7 @@ class NewsOrchestrator {
     return Date.now() - cached.timestamp < this.CACHE_DURATION;
   }
 
-  // Fetch diverse news from multiple categories
+  // Fetch diverse news from multiple categories with sentiment
   async fetchDiverseNews(language: SupportedLanguage = "en"): Promise<NewsArticle[]> {
     const cacheKey = CacheKeys.news(language);
     
@@ -83,15 +113,21 @@ class NewsOrchestrator {
     }
 
     try {
-      // Fetch from NewsAPI with language support
-      console.log(`🌍 Fetching diverse news from multiple sources (language: ${language})...`);
-      const articles = await newsAPIService.getWorldwideHeadlines(language);
+      // PRIMARY: Fetch from World News API with sentiment analysis
+      console.log(`🌍 Fetching diverse news from World News API (language: ${language})...`);
+      const { articles, sentiment } = await worldNewsApi.searchNews({
+        language,
+        number: 20 // Get top 20 headlines
+      });
       
-      console.log(`📥 Received ${articles.length} raw articles from NewsAPI`);
+      console.log(`📥 Received ${articles.length} articles with sentiment: ${sentiment.positive}% positive, ${sentiment.negative}% negative`);
       
       if (!articles || articles.length === 0) {
-        throw new Error('No articles from NewsAPI');
+        throw new Error('No articles from World News API');
       }
+
+      // Store sentiment data in cache
+      await redisCache.set(`sentiment:${language}`, sentiment, 300);
 
       // Deduplicate and categorize
       const processedArticles = this.processArticles(articles);
@@ -103,14 +139,14 @@ class NewsOrchestrator {
         timestamp: Date.now(),
       });
 
-      console.log(`✅ Fetched ${processedArticles.length} diverse news articles after deduplication`);
+      console.log(`✅ Fetched ${processedArticles.length} diverse news articles with sentiment from World News API`);
       return processedArticles;
     } catch (error) {
-      console.warn('NewsAPI failed, trying NewsData.io fallback:', error);
+      console.warn('World News API failed, trying NewsAPI fallback:', error);
       
       try {
-        const fallbackArticles = await newsService.fetchWorldwideNews();
-        const processed = this.processArticles(fallbackArticles);
+        const articles = await newsAPIService.getWorldwideHeadlines(language);
+        const processed = this.processArticles(articles);
         
         // Cache fallback results
         await redisCache.set(cacheKey, processed, 300);
@@ -121,8 +157,23 @@ class NewsOrchestrator {
         
         return processed;
       } catch (fallbackError) {
-        console.error('All news sources failed:', fallbackError);
-        return [];
+        console.warn('NewsAPI failed, trying NewsData.io fallback:', fallbackError);
+        
+        try {
+          const fallbackArticles = await newsService.fetchWorldwideNews();
+          const processed = this.processArticles(fallbackArticles);
+          
+          // Cache fallback results
+          await redisCache.set(cacheKey, processed, 300);
+          this.cache.set(`diverse-global-${language}`, {
+            articles: processed,
+            timestamp: Date.now(),
+          });
+          
+          return processed;
+        } catch (finalError) {
+          console.error('All news sources failed:', finalError);
+          return [];
       }
     }
   }

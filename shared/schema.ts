@@ -43,6 +43,7 @@ export const newsArticles = pgTable("news_articles", {
   externalId: text("external_id"),
   userId: varchar("user_id").references(() => users.id),
   isUserCreated: boolean("is_user_created").default(false),
+  sentiment: real("sentiment"), // -1 to +1 sentiment score from World News API
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({
