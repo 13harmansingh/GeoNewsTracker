@@ -55,6 +55,15 @@ const LANGUAGE_TO_COUNTRIES: Record<SupportedLanguage, string[]> = {
   de: ['de', 'at', 'ch'],
 };
 
+// Map languages to appropriate geographic regions for news distribution
+const LANGUAGE_TO_REGIONS: Record<SupportedLanguage, string[]> = {
+  en: ['North America', 'Europe', 'Asia', 'Australia', 'Africa', 'Middle East'],
+  pt: ['South America', 'Europe'],
+  es: ['South America', 'Europe', 'North America'],
+  fr: ['Europe', 'North America', 'Africa'],
+  de: ['Europe'],
+};
+
 class NewsAPIService {
   private readonly apiKey: string;
   private readonly baseUrl = "https://newsapi.org/v2/top-headlines";
@@ -106,10 +115,18 @@ class NewsAPIService {
         return this.getMockWorldwideHeadlines(language);
       }
 
-      // Distribute articles across worldwide locations
+      // Filter locations based on language-appropriate regions
+      const appropriateRegions = LANGUAGE_TO_REGIONS[language] || LANGUAGE_TO_REGIONS.en;
+      const filteredLocations = WORLDWIDE_LOCATIONS.filter(loc => 
+        appropriateRegions.includes(loc.region)
+      );
+      
+      console.log(`📍 Using ${filteredLocations.length} locations from regions: ${appropriateRegions.join(', ')}`);
+
+      // Distribute articles across language-appropriate locations
       // Take up to 30 articles (more than we need for diversity)
       return allArticles.slice(0, 30).map((article, index) => {
-        const location = WORLDWIDE_LOCATIONS[index % WORLDWIDE_LOCATIONS.length]; // Cycle through locations
+        const location = filteredLocations[index % filteredLocations.length]; // Cycle through filtered locations
         const randomOffset = 0.5;
         const lat = location.lat + (Math.random() - 0.5) * randomOffset;
         const lng = location.lng + (Math.random() - 0.5) * randomOffset;
@@ -144,6 +161,8 @@ class NewsAPIService {
   }
 
   private getMockWorldwideHeadlines(language: SupportedLanguage = "en"): NewsArticle[] {
+    console.log(`📰 Using mock data for language: ${language}`);
+    
     const mockTitlesByLanguage: Record<SupportedLanguage, string[]> = {
       en: [
         "Global Markets Show Strong Recovery",
@@ -234,7 +253,13 @@ class NewsAPIService {
     
     const mockTitles = mockTitlesByLanguage[language] || mockTitlesByLanguage.en;
 
-    return WORLDWIDE_LOCATIONS.map((location, index) => {
+    // Filter locations based on language-appropriate regions (same as real API)
+    const appropriateRegions = LANGUAGE_TO_REGIONS[language] || LANGUAGE_TO_REGIONS.en;
+    const filteredLocations = WORLDWIDE_LOCATIONS.filter(loc => 
+      appropriateRegions.includes(loc.region)
+    );
+
+    return filteredLocations.map((location, index) => {
       const randomOffset = 0.5;
       return {
         id: Date.now() + index,
