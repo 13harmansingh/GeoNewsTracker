@@ -5,7 +5,6 @@ import NavigationBar from "@/components/map/NavigationBar";
 import SearchBar from "@/components/map/SearchBar";
 import MapControls from "@/components/map/MapControls";
 import ActionBar from "@/components/map/ActionBar";
-import { GlobalMoodMeter } from "@/components/GlobalMoodMeter";
 import { useNews } from "@/hooks/use-news";
 import { useArticleExperience } from "@/contexts/ArticleExperienceContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -209,9 +208,6 @@ export default function MapPage() {
     <div className="relative h-screen w-full overflow-hidden bg-gray-50">
       {/* Navigation Bar */}
       <NavigationBar />
-
-      {/* KNEW Global Mood Meter */}
-      <GlobalMoodMeter />
 
       {/* Search Bar */}
       <SearchBar onSearch={handleSearch} />

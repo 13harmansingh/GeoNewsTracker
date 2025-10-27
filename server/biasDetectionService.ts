@@ -77,7 +77,7 @@ class BiasDetectionService {
 
     try {
       // Use HuggingFace BART model for neutral summarization
-      const prompt = `Summarize this headline neutrally, no opinion: ${cleanText.substring(0, 1024)}`;
+      const prompt = `Summarize neutrally: ${cleanText.substring(0, 1024)}`;
       
       const response = await fetch(this.summaryModelUrl, {
         method: "POST",
