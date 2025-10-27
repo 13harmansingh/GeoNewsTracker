@@ -385,7 +385,7 @@ export async function searchNews(query: string): Promise<NewsArticle[]> {
   try {
     // Search using NewsData.io API with the query
     const url = `${NEWSDATA_API_URL}?apikey=${API_KEY}&language=en&q=${encodeURIComponent(query)}`;
-    console.log('Fetching search results from:', url.replace(API_KEY, 'API_KEY_HIDDEN'));
+    console.log('Fetching search results from:', url.replace(API_KEY || '', 'API_KEY_HIDDEN'));
 
     const response = await fetch(url);
     const data = await response.json();
