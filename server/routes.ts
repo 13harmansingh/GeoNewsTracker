@@ -226,7 +226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (country && typeof country === 'string') {
           // Fetch news by country if provided
           try {
-            articles = await newsService.getNewsByCountry(country);
+            articles = await newsService.getNewsByCountry(country, language);
           } catch (newsDataError) {
             console.warn("NewsData.io failed, trying NewsAPI.org fallback");
             const countryCode = country.length === 2 ? country : 'us';
@@ -309,7 +309,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let articles;
       try {
         try {
-          articles = await newsService.getNewsByCategory(category);
+          articles = await newsService.getNewsByCategory(category, language);
         } catch (newsDataError) {
           console.warn("NewsData.io failed, trying NewsAPI.org fallback");
           articles = await newsAPIService.getTopHeadlinesByCountry('us');
@@ -341,7 +341,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let articles;
       try {
-        articles = await newsService.searchNews(searchQuery);
+        articles = await newsService.searchNews(searchQuery, language);
         console.log('✅ Found', articles.length, 'articles from API search');
       } catch (apiError) {
         console.warn("Failed to search news from API, using local storage:", apiError);
