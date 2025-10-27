@@ -90,6 +90,9 @@ export async function setupAuth(app: Express) {
 
   if (!AUTH_ENABLED) {
     console.log("⚠️ Auth is disabled - required environment variables not set");
+    console.log(`  REPLIT_DOMAINS: ${process.env.REPLIT_DOMAINS ? 'set' : 'missing'}`);
+    console.log(`  SESSION_SECRET: ${process.env.SESSION_SECRET ? 'set' : 'missing'}`);
+    console.log(`  DATABASE_URL: ${process.env.DATABASE_URL ? 'set' : 'missing'}`);
     app.get("/api/login", (req, res) => {
       res.status(503).json({ message: "Authentication not configured" });
     });
@@ -102,6 +105,7 @@ export async function setupAuth(app: Express) {
     return;
   }
 
+  console.log("🔐 Setting up Replit Auth...");
   const config = await getOidcConfig();
 
   const verify: VerifyFunction = async (
@@ -114,32 +118,51 @@ export async function setupAuth(app: Express) {
     verified(null, user);
   };
 
-  for (const domain of process.env
-    .REPLIT_DOMAINS!.split(",")) {
+  const domains = process.env.REPLIT_DOMAINS!.split(",");
+  
+  // Add localhost for development if not already present
+  if (!domains.includes("localhost") && process.env.NODE_ENV === "development") {
+    domains.push("localhost");
+  }
+  
+  console.log(`📋 Registering auth strategies for domains: ${domains.join(", ")}`);
+  
+  for (const domain of domains) {
+    const isLocalhost = domain === "localhost";
+    const callbackURL = isLocalhost 
+      ? `http://${domain}:5000/api/callback`
+      : `https://${domain}/api/callback`;
+    
+    console.log(`  ✓ Strategy: replitauth:${domain} (callback: ${callbackURL})`);
+    
     const strategy = new Strategy(
       {
         name: `replitauth:${domain}`,
         config,
         scope: "openid email profile offline_access",
-        callbackURL: `https://${domain}/api/callback`,
+        callbackURL,
       },
       verify,
     );
     passport.use(strategy);
   }
 
+  console.log("✅ Replit Auth setup complete");
+  
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
+    const hostname = req.hostname || "localhost";
+    passport.authenticate(`replitauth:${hostname}`, {
       prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
     })(req, res, next);
   });
 
   app.get("/api/callback", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
+    const hostname = req.hostname || "localhost";
+    passport.authenticate(`replitauth:${hostname}`, {
       successReturnToOrRedirect: "/",
       failureRedirect: "/api/login",
     })(req, res, next);

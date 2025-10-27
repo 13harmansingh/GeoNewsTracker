@@ -3,6 +3,14 @@
 ## Overview
 Knew is a modern, location-based news application that displays news articles on an interactive map. Users can explore news by geographic location, filter by categories, and search for specific content. The application features a mobile-first design with iOS-inspired UI components and real-time news updates from authentic sources like NewsData.io. It aims to provide a seamless and engaging news discovery experience, with a focus on geographic relevance and user interaction.
 
+## Recent Changes (October 27, 2025)
+- Fixed authentication setup to support both Replit domains and localhost for development
+- Simplified navigation bar: black "Sign In" text on left, logout icon on right
+- Added ocean-colored background (#AAD3DF) to map matching water tiles
+- Limited map zoom out to 50% beyond world boundaries (minZoom: 2)
+- Fixed bias analysis for ephemeral location-fresh articles (negative IDs skip database persistence)
+- Enhanced authentication logging for easier debugging
+
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
