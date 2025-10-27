@@ -6,12 +6,22 @@ Knew is a professional location-based news platform demonstrating TRL 7 capabili
 ## Recent Changes (October 27, 2025)
 
 ### TRL 7 Enhancements
+
+- **AI Neutral Summaries** (October 27, 2025): Raw news without agenda
+  - HuggingFace BART model (`facebook/bart-large-cnn`) for 80-word neutral summaries
+  - Prompt: "Summarize this headline neutrally, no opinion"
+  - Dedicated `/api/ai/summary/:id` endpoint with caching
+  - Extractive fallback (first 80 words) when API unavailable
+  - Displayed in BiasAnalysisForm component with AI prediction
+  - Combined with bias detection for comprehensive AI analysis
+
 - **Multilingual Support**: Added 5 languages (English, Portuguese, Spanish, French, German)
   - Language dropdown in NavigationBar with flag icons
   - Language context provider for global state management
   - Language-specific news fetching from NewsAPI with country mapping
   - Multilingual mock data fallback (all 5 languages)
   - Separate caching per language for optimal performance
+  - Geographic region filtering (German only in Europe, Portuguese in South America + Europe, etc.)
 
 - **Enhanced Error Handling**: Comprehensive try/catch blocks across all API calls
   - Multi-source fallback: NewsAPI.org → NewsData.io → Mock Data
@@ -81,15 +91,21 @@ Preferred communication style: Simple, everyday language.
       - `GET /api/callback`
       - `GET /api/auth/user`
     - **AI**: 
-      - `POST /api/ai/detect-bias`
-      - `GET /api/ai/summary/:id`
+      - `POST /api/ai/detect-bias` - Returns bias prediction, confidence, and 80-word neutral summary
+      - `GET /api/ai/summary/:id` - Get cached neutral summary for article (checks bias analysis first)
 - **Data Flow**: Client requests (React Query with language) → Server (Express) → News Orchestrator (language-aware) → NewsAPI/NewsData/Mock → PostgreSQL Cache → Client Rendering.
 - **Multi-Provider News System**: 
   - Primary: NewsAPI.org (language via country mapping)
   - Fallback 1: NewsData.io
   - Fallback 2: Multilingual mock data
   - Includes news orchestrator for category detection, 5-minute caching per language, and deduplication
-- **AI Features**: Auto-apply AI bias tags (high-confidence predictions), cached AI summaries, HuggingFace integration (free tier).
+- **AI Features**: 
+  - **Bias Detection**: `cardiffnlp/twitter-roberta-base-bias-detection` model
+  - **Neutral Summaries**: `facebook/bart-large-cnn` model (80 words, no opinions)
+  - Auto-apply AI bias tags (high-confidence predictions)
+  - Cached AI summaries in bias analysis table
+  - HuggingFace integration (free tier)
+  - Extractive fallback when API unavailable
 
 ### Multilingual Architecture
 ```

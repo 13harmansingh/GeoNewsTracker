@@ -15,9 +15,18 @@ A professional location-based news analysis platform demonstrating advanced TRL 
 
 ### AI-Powered Analysis (Free Tier)
 - **Bias Detection**: HuggingFace-powered analysis with confidence scores
+  - Model: `cardiffnlp/twitter-roberta-base-bias-detection`
   - Automatic pre-tagging (LEFT/CENTER/RIGHT)
   - Manual bias tagging with AI suggestions
-  - Neutral AI-generated summaries
+  - Confidence scores (65-94%)
+  
+- **AI Neutral Summaries**: Raw news without agenda (NEW)
+  - Model: `facebook/bart-large-cnn` (HuggingFace)
+  - 80-word neutral summaries for every article
+  - Removes editorial bias and opinions
+  - Prompt: "Summarize this headline neutrally, no opinion"
+  - Extractive fallback (first 80 words) when API unavailable
+  - Cached with bias analysis for performance
   
 - **Media Ownership Mapping**: Interactive ownership charts showing who controls the news
   - Chart.js pie charts with distinct colors
@@ -38,6 +47,17 @@ A professional location-based news analysis platform demonstrating advanced TRL 
 - **Comprehensive Try/Catch**: All API calls protected with error handling
 - **User Alerts**: Clear error messages (ready for toast notifications)
 - **Smart Caching**: 5-minute cache per language to minimize API calls
+
+### Multilingual Mock Data (NEW)
+When API limits are reached, KNEW automatically switches to language-specific mock data:
+
+- **English**: "Global Markets Show Strong Recovery", "International Summit Addresses Climate Change"
+- **Portuguese**: "Os Mercados Globais Mostram Forte Recuperação", "Cúpula Internacional Aborda Mudanças Climáticas"
+- **Spanish**: "Los Mercados Globales Muestran una Fuerte Recuperación", "Cumbre Internacional Aborda el Cambio Climático"
+- **French**: "Les Marchés Mondiaux Montrent une Forte Reprise", "Sommet International sur le Changement Climatique"
+- **German**: "Globale Märkte Zeigen Starke Erholung", "Internationaler Gipfel Behandelt Klimawandel"
+
+Each language includes 15+ realistic headlines distributed across appropriate geographic regions (e.g., German only in Europe, Portuguese in South America + Europe).
 
 ### Modern UX/UI
 - iOS 26-inspired glassmorphism design
@@ -213,8 +233,12 @@ Client (with language-specific data)
 - `GET /api/news/search?q=climate&language=fr` - Search news
 
 ### AI Endpoints
-- `POST /api/ai/detect-bias` - Analyze article bias
-- `GET /api/ai/summary/:id` - Get neutral summary
+- `POST /api/ai/detect-bias` - Analyze article bias + generate summary
+  - Request: `{ "text": "article content" }`
+  - Response: `{ "prediction": "center", "confidence": 0.87, "summary": "..." }`
+- `GET /api/ai/summary/:id` - Get cached neutral summary for article
+  - Returns 80-word neutral summary
+  - Falls back to extractive summary if AI unavailable
 
 ### Auth Endpoints
 - `GET /api/login` - Initiate Replit Auth login

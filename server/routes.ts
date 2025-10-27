@@ -407,7 +407,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const result = await biasDetectionService.detectBias(text);
-      const summary = await biasDetectionService.generateNeutralSummary(text);
+      const summary = await biasDetectionService.generateNeutralSummary(text, 80);
 
       res.json({
         prediction: result.prediction,
@@ -417,6 +417,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error detecting bias:", error);
       res.status(500).json({ message: "Failed to detect bias" });
+    }
+  });
+
+  // AI summary generation endpoint
+  app.get("/api/ai/summary/:id", async (req, res) => {
+    try {
+      const articleId = parseInt(req.params.id);
+      
+      // Check if we have a cached summary in bias analysis
+      const biasAnalysis = await storage.getBiasAnalysis(articleId);
+      if (biasAnalysis?.aiSummary) {
+        return res.json({ summary: biasAnalysis.aiSummary });
+      }
+
+      // Get article and generate summary
+      const article = await storage.getNewsArticle(articleId);
+      if (!article) {
+        return res.status(404).json({ message: "Article not found" });
+      }
+
+      const fullText = `${article.title}. ${article.summary || article.content || ''}`;
+      const summary = await biasDetectionService.generateNeutralSummary(fullText, 80);
+
+      res.json({ summary });
+    } catch (error) {
+      console.error("Error generating summary:", error);
+      res.status(500).json({ message: "Failed to generate summary" });
     }
   });
 
