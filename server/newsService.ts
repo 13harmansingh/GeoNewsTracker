@@ -234,14 +234,14 @@ class NewsService {
     return categoryMap[userCategory.toUpperCase()] || userCategory.toLowerCase();
   }
 
-  async fetchWorldwideNews(country?: string, category?: string, query?: string): Promise<NewsArticle[]> {
+  async fetchWorldwideNews(country?: string, category?: string, query?: string, language: string = "en"): Promise<NewsArticle[]> {
     if (!this.apiKey) {
       throw new Error("NewsData.io API key not configured");
     }
 
     try {
-      // Build URL with safe parameters
-      let url = `${this.baseUrl}?apikey=${this.apiKey}&language=en`;
+      // Build URL with safe parameters - use requested language
+      let url = `${this.baseUrl}?apikey=${this.apiKey}&language=${language}`;
 
       // Add optional parameters safely
       if (query && query.length >= 3) {
@@ -298,11 +298,11 @@ class NewsService {
     }
   }
 
-  async searchNews(query: string): Promise<NewsArticle[]> {
-    return this.fetchWorldwideNews(undefined, undefined, query);
+  async searchNews(query: string, language: string = "en"): Promise<NewsArticle[]> {
+    return this.fetchWorldwideNews(undefined, undefined, query, language);
   }
 
-  async getNewsByCategory(category: string): Promise<NewsArticle[]> {
+  async getNewsByCategory(category: string, language: string = "en"): Promise<NewsArticle[]> {
     const categoryMap: Record<string, string> = {
       "BREAKING": "top",
       "POLITICS": "politics", 
@@ -317,13 +317,13 @@ class NewsService {
     };
 
     const mappedCategory = categoryMap[category] || "top";
-    return this.fetchWorldwideNews(undefined, mappedCategory);
+    return this.fetchWorldwideNews(undefined, mappedCategory, undefined, language);
   }
 
-  async getNewsByCountry(country: string): Promise<NewsArticle[]> {
+  async getNewsByCountry(country: string, language: string = "en"): Promise<NewsArticle[]> {
     // Ensure country code is 2 characters
     const countryCode = country.length === 2 ? country : this.getCountryCode(country);
-    return this.fetchWorldwideNews(countryCode);
+    return this.fetchWorldwideNews(countryCode, undefined, undefined, language);
   }
 
   private getCountryCode(country: string): string {
