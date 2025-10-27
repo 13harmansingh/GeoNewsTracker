@@ -5,6 +5,7 @@ import { newsService } from "./newsService";
 import { newsAPIService } from "./newsApiService";
 import { newsOrchestrator } from "./newsOrchestrator";
 import { biasDetectionService } from "./biasDetectionService";
+import { biasJobQueue } from "./biasJobQueue";
 import { MOCK_OWNERSHIP_DATA } from "./ownershipData";
 import { z } from "zod";
 import { setupAuth, isAuthenticated } from "./replitAuth";
@@ -444,6 +445,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generating summary:", error);
       res.status(500).json({ message: "Failed to generate summary" });
+    }
+  });
+
+  // Background job endpoints (Celery-style with BullMQ)
+  app.post("/api/ai/detect-bias-async", async (req, res) => {
+    try {
+      const { text, articleId } = req.body;
+      if (!text || typeof text !== 'string') {
+        return res.status(400).json({ message: "Text is required" });
+      }
+
+      const jobId = `bias-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const job = await biasJobQueue.addBiasJob({
+        text,
+        articleId,
+        jobId
+      });
+
+      res.json({
+        jobId: job.jobId,
+        status: job.status,
+        statusUrl: `/api/ai/job/${job.jobId}`
+      });
+    } catch (error) {
+      console.error("Error queuing bias detection:", error);
+      res.status(500).json({ message: "Failed to queue bias detection" });
+    }
+  });
+
+  app.get("/api/ai/job/:jobId", async (req, res) => {
+    try {
+      const { jobId } = req.params;
+      const status = await biasJobQueue.getJobStatus(jobId);
+      res.json(status);
+    } catch (error) {
+      console.error("Error fetching job status:", error);
+      res.status(500).json({ message: "Failed to fetch job status" });
+    }
+  });
+
+  app.get("/api/ai/queue/stats", async (req, res) => {
+    try {
+      const stats = await biasJobQueue.getQueueStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching queue stats:", error);
+      res.status(500).json({ message: "Failed to fetch queue stats" });
     }
   });
 
