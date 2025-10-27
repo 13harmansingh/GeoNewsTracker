@@ -1,6 +1,7 @@
 import type { NewsArticle } from "@shared/schema";
 import { newsAPIService, type SupportedLanguage } from "./newsApiService";
 import { newsService } from "./newsService";
+import { redisCache, CacheKeys } from "./redisCache";
 
 // Category detection keywords
 const CATEGORY_KEYWORDS = {
@@ -65,11 +66,19 @@ class NewsOrchestrator {
 
   // Fetch diverse news from multiple categories
   async fetchDiverseNews(language: SupportedLanguage = "en"): Promise<NewsArticle[]> {
-    const cacheKey = `diverse-global-${language}`;
+    const cacheKey = CacheKeys.news(language);
     
-    if (this.isCacheValid(cacheKey)) {
-      const cached = this.cache.get(cacheKey)!.articles;
-      console.log(`✅ Using cached diverse news (${cached.length} articles) for language: ${language}`);
+    // Try Redis cache first
+    const cachedArticles = await redisCache.get<NewsArticle[]>(cacheKey);
+    if (cachedArticles && cachedArticles.length > 0) {
+      console.log(`✅ Using Redis cached diverse news (${cachedArticles.length} articles) for language: ${language}`);
+      return cachedArticles;
+    }
+    
+    // Fallback to in-memory cache
+    if (this.isCacheValid(`diverse-global-${language}`)) {
+      const cached = this.cache.get(`diverse-global-${language}`)!.articles;
+      console.log(`✅ Using in-memory cached diverse news (${cached.length} articles) for language: ${language}`);
       return cached;
     }
 
@@ -87,8 +96,9 @@ class NewsOrchestrator {
       // Deduplicate and categorize
       const processedArticles = this.processArticles(articles);
       
-      // Cache the result
-      this.cache.set(cacheKey, {
+      // Cache the result in both Redis and in-memory
+      await redisCache.set(cacheKey, processedArticles, 300); // 5 minutes
+      this.cache.set(`diverse-global-${language}`, {
         articles: processedArticles,
         timestamp: Date.now(),
       });
@@ -102,7 +112,9 @@ class NewsOrchestrator {
         const fallbackArticles = await newsService.fetchWorldwideNews();
         const processed = this.processArticles(fallbackArticles);
         
-        this.cache.set(cacheKey, {
+        // Cache fallback results
+        await redisCache.set(cacheKey, processed, 300);
+        this.cache.set(`diverse-global-${language}`, {
           articles: processed,
           timestamp: Date.now(),
         });
