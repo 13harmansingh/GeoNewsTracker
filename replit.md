@@ -5,7 +5,7 @@ Knew is a professional location-based news platform demonstrating TRL 7 capabili
 
 ## Recent Changes (October 27, 2025)
 
-### TRL 7 Enhancements - Phase 3: World News API + KNEW Global Mood Meter (COMPLETED)
+### TRL 7 Enhancements - Phase 3: World News API + Per-Article Sentiment (COMPLETED)
 
 - **World News API Integration** (October 27, 2025): Premium news aggregation with sentiment analysis
   - Replaced NewsAPI.org with World News API as primary news source
@@ -16,16 +16,20 @@ Knew is a professional location-based news platform demonstrating TRL 7 capabili
   - Successful testing: Portuguese shows Brazil (-22, -45), English shows UK/US (51-53, 0), German shows Europe
   - Smart fallback chain: World News API → NewsAPI.org → NewsData.io → Mock Data
   
-- **KNEW Global Mood Meter** (October 27, 2025): Branded sentiment visualization feature
-  - Real-time sentiment dashboard displayed as percentage breakdown
-  - Visual mood indicator: 😊 (positive), 😐 (neutral), 😟 (concerned)
-  - Three sentiment bars with smooth animations: Positive (green), Neutral (gray), Concerned (red)
-  - Expandable details showing average sentiment score and article count
-  - Automatic refresh every 5 minutes for latest global mood
-  - Language-specific sentiment: EN (30% positive, 35% neutral, 35% negative), PT (100% neutral), DE (40% positive, 10% neutral, 50% negative)
-  - Fixed top-right position with glassmorphism design matching app aesthetic
-  - Rebranded as KNEW proprietary feature powered by World News API
-  - `/api/sentiment?language=en` endpoint with Redis caching
+- **Per-Article KNEW Mood Meter** (October 27, 2025): Optimized sentiment display
+  - Compact badge showing sentiment alongside political leaning (flex row layout)
+  - Per-article sentiment from World News API displayed as "KNEW Mood"
+  - Visual indicators: 😊 (positive), 😐 (neutral), 😟 (concerned) with percentage
+  - Non-intrusive design preventing UI blockage
+  - Dark mode support throughout
+  - Integrated into bias analysis panel for clean EIC demonstration
+
+- **Collapsible AI Summaries** (October 27, 2025): Space-efficient neutral summaries
+  - 80-word neutral summaries using BART model (`facebook/bart-large-cnn`)
+  - Collapsible section below each article to save space
+  - Expand/collapse toggle with Sparkles icon
+  - Prompt: "Summarize neutrally" for factual, opinion-free content
+  - Background highlighting for easy readability
 
 ### TRL 7 Enhancements - Phase 2: Superior Technology Stack (COMPLETED)
 

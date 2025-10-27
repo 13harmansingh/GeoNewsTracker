@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { BiasAnalysis, NewsArticle } from "@shared/schema";
-import { Brain, TrendingUp, AlertCircle, Sparkles } from "lucide-react";
+import { Brain, TrendingUp, AlertCircle, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ArticleSentimentMeter } from "./ArticleSentimentMeter";
 
 interface BiasAnalysisFormProps {
   article: NewsArticle;
@@ -20,6 +21,7 @@ export function BiasAnalysisForm({ article, isPro }: BiasAnalysisFormProps) {
   const [selectedTag, setSelectedTag] = useState<BiasTag | null>(null);
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
   const [aiResult, setAiResult] = useState<{ prediction: BiasTag; confidence: number; summary: string } | null>(null);
+  const [summaryExpanded, setSummaryExpanded] = useState(false);
   const { toast } = useToast();
 
   const { data: existingAnalysis, isLoading } = useQuery<BiasAnalysis | null>({
@@ -145,26 +147,50 @@ export function BiasAnalysisForm({ article, isPro }: BiasAnalysisFormProps) {
       </div>
 
       {aiResult && (
-        <div className="p-4 bg-white/60 rounded-xl border border-gray-200 mb-4 shadow-sm" data-testid="ai-prediction">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-700 flex items-center gap-2 font-medium">
+        <div className="p-4 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 mb-4 shadow-sm" data-testid="ai-prediction">
+          {/* Compact flex row with bias and sentiment */}
+          <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
               <AlertCircle className="w-4 h-4 text-purple-500" />
-              AI Suggestion:
-            </span>
-            <Badge className={`${getTagBadgeColor(aiResult.prediction)} border`}>
-              {aiResult.prediction.toUpperCase()}
-            </Badge>
+              <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                Political Leaning:
+              </span>
+              <Badge className={`${getTagBadgeColor(aiResult.prediction)} border`}>
+                {aiResult.prediction.toUpperCase()}
+              </Badge>
+            </div>
+            <ArticleSentimentMeter sentiment={article.sentiment} compact={true} />
           </div>
+          
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="w-4 h-4 text-green-500" />
-            <span className="text-xs text-gray-600 font-medium">
+            <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">
               Confidence: {(aiResult.confidence * 100).toFixed(0)}%
             </span>
           </div>
+          
+          {/* Collapsible AI Summary */}
           {aiResult.summary && (
-            <p className="text-xs text-gray-700 italic mt-2 leading-relaxed">
-              "{aiResult.summary}"
-            </p>
+            <div className="mt-3 border-t border-gray-200 dark:border-gray-700 pt-3">
+              <button
+                onClick={() => setSummaryExpanded(!summaryExpanded)}
+                className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors w-full"
+                data-testid="button-toggle-summary"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>AI Neutral Summary (80 words)</span>
+                {summaryExpanded ? (
+                  <ChevronUp className="w-4 h-4 ml-auto" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 ml-auto" />
+                )}
+              </button>
+              {summaryExpanded && (
+                <p className="text-xs text-gray-700 dark:text-gray-300 italic mt-2 leading-relaxed bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg" data-testid="ai-summary-text">
+                  "{aiResult.summary}"
+                </p>
+              )}
+            </div>
           )}
         </div>
       )}
