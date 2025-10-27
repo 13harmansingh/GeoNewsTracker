@@ -1,0 +1,20 @@
+Enhance the KNEW app to TRL 7 for EIC Acceleration Grant with superior technology and full functionality. Base on current setup (BullMQ job queue in server/biasJobQueue.ts, NewsAPI/NewsData.io, HuggingFace AI, dark Tailwind theme, free AI features) to secure the grant.
+
+Update the following:
+- **News Fetching Fix**: Correct Europe showing South American news. Add country-specific query (q=country) and language param (lang=en, de, fr, pt, es) to NewsAPI/NewsData.io endpoint. Fallback to mock data for 'eu' if no results.
+- **AI Summary**: Add neutral 80-word summaries using 'distilbert-base-uncased-finetuned-sst-2-english' after bias detection (prompt: "Summarize neutrally: [headline]"). Integrate into BullMQ job queue, return with prediction in GET /api/ai/job/{jobId}.
+- **Superior Technology**:
+  - **WebSocket**: Add real-time bias/summary updates to dashboard using ws library. Push updates on job completion.
+  - **Redis Scaling**: Enable Redis with UPSTASH_REDIS_URL from Secrets for BullMQ (free Upstash tier). Cache news and AI results (5-min TTL).
+  - **Async Optimization**: Use native async/await for all fetches and jobs, target 500 jobs/sec throughput.
+- **Error Handling**: Implement try/catch for all API calls (NewsAPI, HuggingFace). Return mock data with alert ("API failed, using mock").
+- **Multilingual Support**: Mock 5 languages (English, German, French, Portuguese, Spanish) in news data. Add language toggle in UI.
+- **Deployment Readiness**: Optimize for public URL (e.g., https://r4w.space). Add README with setup (API keys, Redis URL) and note: "TRL 7 demo for EIC, €1.2B aligned."
+- **Testing**: Run 100 concurrent headlines, verify WebSocket updates, check 'de' news.
+
+Base on server/biasJobQueue.ts [paste your current biasJobQueue.ts].
+Base on app.py or server.js [paste your current server file].
+Base on index.html or client/index.tsx [paste your HTML/TSX, news/dashboard sections].
+Base on style.css or tailwind.config.ts [paste your CSS/TS config].
+
+Generate updated code, ensure all tech works superiorly, and confirm TRL 7 readiness for EIC grant.
