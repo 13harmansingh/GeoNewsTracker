@@ -1,5 +1,5 @@
 import type { NewsArticle } from "@shared/schema";
-import { newsAPIService } from "./newsApiService";
+import { newsAPIService, type SupportedLanguage } from "./newsApiService";
 import { newsService } from "./newsService";
 
 // Category detection keywords
@@ -64,19 +64,19 @@ class NewsOrchestrator {
   }
 
   // Fetch diverse news from multiple categories
-  async fetchDiverseNews(): Promise<NewsArticle[]> {
-    const cacheKey = 'diverse-global';
+  async fetchDiverseNews(language: SupportedLanguage = "en"): Promise<NewsArticle[]> {
+    const cacheKey = `diverse-global-${language}`;
     
     if (this.isCacheValid(cacheKey)) {
       const cached = this.cache.get(cacheKey)!.articles;
-      console.log(`✅ Using cached diverse news (${cached.length} articles)`);
+      console.log(`✅ Using cached diverse news (${cached.length} articles) for language: ${language}`);
       return cached;
     }
 
     try {
-      // Fetch from NewsAPI (13 countries for diversity)
-      console.log('🌍 Fetching diverse news from multiple sources...');
-      const articles = await newsAPIService.getWorldwideHeadlines();
+      // Fetch from NewsAPI with language support
+      console.log(`🌍 Fetching diverse news from multiple sources (language: ${language})...`);
+      const articles = await newsAPIService.getWorldwideHeadlines(language);
       
       console.log(`📥 Received ${articles.length} raw articles from NewsAPI`);
       
@@ -116,17 +116,17 @@ class NewsOrchestrator {
   }
 
   // Fetch news by specific category
-  async fetchByCategory(category: string): Promise<NewsArticle[]> {
-    const cacheKey = `category-${category}`;
+  async fetchByCategory(category: string, language: SupportedLanguage = "en"): Promise<NewsArticle[]> {
+    const cacheKey = `category-${category}-${language}`;
     
     if (this.isCacheValid(cacheKey)) {
-      console.log(`✅ Using cached news for category: ${category}`);
+      console.log(`✅ Using cached news for category: ${category} (${language})`);
       return this.cache.get(cacheKey)!.articles;
     }
 
     try {
       // First try to get all news and filter by detected category
-      const allNews = await this.fetchDiverseNews();
+      const allNews = await this.fetchDiverseNews(language);
       const filtered = allNews.filter(article => {
         const detected = this.detectCategory(article);
         return detected === category.toUpperCase();

@@ -1,5 +1,7 @@
 import type { NewsArticle } from "@shared/schema";
 
+export type SupportedLanguage = "en" | "pt" | "es" | "fr" | "de";
+
 interface NewsAPIResponse {
   status: string;
   totalResults: number;
@@ -45,6 +47,14 @@ const WORLDWIDE_LOCATIONS: Array<{ lat: number; lng: number; name: string; regio
   { lat: 52.5200, lng: 13.4050, name: "Berlin", region: "Europe" },
 ];
 
+const LANGUAGE_TO_COUNTRIES: Record<SupportedLanguage, string[]> = {
+  en: ['us', 'gb', 'au', 'ca', 'in'],
+  pt: ['br', 'pt'],
+  es: ['es', 'mx', 'ar', 'co'],
+  fr: ['fr', 'ca', 'be'],
+  de: ['de', 'at', 'ch'],
+};
+
 class NewsAPIService {
   private readonly apiKey: string;
   private readonly baseUrl = "https://newsapi.org/v2/top-headlines";
@@ -56,16 +66,16 @@ class NewsAPIService {
     }
   }
 
-  async getWorldwideHeadlines(): Promise<NewsArticle[]> {
+  async getWorldwideHeadlines(language: SupportedLanguage = "en"): Promise<NewsArticle[]> {
     // Fetch headlines from multiple countries for true worldwide distribution
     if (!this.apiKey) {
-      return this.getMockWorldwideHeadlines();
+      return this.getMockWorldwideHeadlines(language);
     }
 
     try {
-      // Fetch from multiple countries for diverse worldwide coverage
-      const countries = ['us', 'gb', 'in', 'au', 'jp', 'br', 'za', 'ae', 'mx', 'sg', 'ru', 'de', 'fr'];
-      const articlesPerCountry = 3; // Fetch 3 articles per country for more variety
+      // Get countries for the specified language
+      const countries = LANGUAGE_TO_COUNTRIES[language] || LANGUAGE_TO_COUNTRIES.en;
+      const articlesPerCountry = Math.ceil(30 / countries.length); // Distribute to get ~30 articles
       
       console.log(`Fetching headlines from ${countries.length} countries for worldwide distribution...`);
       
@@ -93,7 +103,7 @@ class NewsAPIService {
 
       if (allArticles.length === 0) {
         console.warn(`No articles found from any country`);
-        return this.getMockWorldwideHeadlines();
+        return this.getMockWorldwideHeadlines(language);
       }
 
       // Distribute articles across worldwide locations
@@ -120,7 +130,7 @@ class NewsAPIService {
           sourceUrl: article.url,
           sourceName: article.source.name,
           country: location.region,
-          language: "en",
+          language,
           externalId: `newsapi-worldwide-${Date.now()}-${index}`,
           userId: null,
           isUserCreated: false,
@@ -129,28 +139,100 @@ class NewsAPIService {
 
     } catch (error) {
       console.error(`Error fetching NewsAPI headlines:`, error);
-      return this.getMockWorldwideHeadlines();
+      return this.getMockWorldwideHeadlines(language);
     }
   }
 
-  private getMockWorldwideHeadlines(): NewsArticle[] {
-    const mockTitles = [
-      "Global Markets Show Strong Recovery",
-      "International Summit Addresses Climate Change",
-      "Technology Innovation Transforms Healthcare",
-      "Major Archaeological Discovery Announced",
-      "Sports Championship Draws Record Viewers",
-      "New Space Exploration Mission Launched",
-      "Cultural Festival Celebrates Diversity",
-      "Economic Growth Exceeds Expectations",
-      "Scientific Breakthrough in Renewable Energy",
-      "Historic Agreement Signed by World Leaders",
-      "Educational Reform Initiative Unveiled",
-      "Transportation Infrastructure Modernized",
-      "Environmental Protection Measures Expanded",
-      "Digital Security Standards Updated",
-      "Community Development Project Succeeds"
-    ];
+  private getMockWorldwideHeadlines(language: SupportedLanguage = "en"): NewsArticle[] {
+    const mockTitlesByLanguage: Record<SupportedLanguage, string[]> = {
+      en: [
+        "Global Markets Show Strong Recovery",
+        "International Summit Addresses Climate Change",
+        "Technology Innovation Transforms Healthcare",
+        "Major Archaeological Discovery Announced",
+        "Sports Championship Draws Record Viewers",
+        "New Space Exploration Mission Launched",
+        "Cultural Festival Celebrates Diversity",
+        "Economic Growth Exceeds Expectations",
+        "Scientific Breakthrough in Renewable Energy",
+        "Historic Agreement Signed by World Leaders",
+        "Educational Reform Initiative Unveiled",
+        "Transportation Infrastructure Modernized",
+        "Environmental Protection Measures Expanded",
+        "Digital Security Standards Updated",
+        "Community Development Project Succeeds"
+      ],
+      pt: [
+        "Mercados Globais Mostram Forte Recuperação",
+        "Cúpula Internacional Aborda Mudanças Climáticas",
+        "Inovação Tecnológica Transforma Saúde",
+        "Grande Descoberta Arqueológica Anunciada",
+        "Campeonato Esportivo Atrai Recordes de Audiência",
+        "Nova Missão de Exploração Espacial Lançada",
+        "Festival Cultural Celebra Diversidade",
+        "Crescimento Econômico Supera Expectativas",
+        "Avanço Científico em Energia Renovável",
+        "Acordo Histórico Assinado por Líderes Mundiais",
+        "Iniciativa de Reforma Educacional Revelada",
+        "Infraestrutura de Transporte Modernizada",
+        "Medidas de Proteção Ambiental Expandidas",
+        "Padrões de Segurança Digital Atualizados",
+        "Projeto de Desenvolvimento Comunitário Bem-Sucedido"
+      ],
+      es: [
+        "Los Mercados Globales Muestran Fuerte Recuperación",
+        "Cumbre Internacional Aborda Cambio Climático",
+        "Innovación Tecnológica Transforma Atención Médica",
+        "Anunciado Gran Descubrimiento Arqueológico",
+        "Campeonato Deportivo Atrae Récord de Espectadores",
+        "Lanzada Nueva Misión de Exploración Espacial",
+        "Festival Cultural Celebra Diversidad",
+        "Crecimiento Económico Supera Expectativas",
+        "Avance Científico en Energía Renovable",
+        "Acuerdo Histórico Firmado por Líderes Mundiales",
+        "Iniciativa de Reforma Educativa Revelada",
+        "Infraestructura de Transporte Modernizada",
+        "Medidas de Protección Ambiental Ampliadas",
+        "Estándares de Seguridad Digital Actualizados",
+        "Proyecto de Desarrollo Comunitario Exitoso"
+      ],
+      fr: [
+        "Les Marchés Mondiaux Montrent une Forte Reprise",
+        "Sommet International sur le Changement Climatique",
+        "Innovation Technologique Transforme les Soins de Santé",
+        "Découverte Archéologique Majeure Annoncée",
+        "Championnat Sportif Attire un Nombre Record de Spectateurs",
+        "Nouvelle Mission d'Exploration Spatiale Lancée",
+        "Festival Culturel Célèbre la Diversité",
+        "Croissance Économique Dépasse les Attentes",
+        "Percée Scientifique dans l'Énergie Renouvelable",
+        "Accord Historique Signé par des Leaders Mondiaux",
+        "Initiative de Réforme Éducative Dévoilée",
+        "Infrastructure de Transport Modernisée",
+        "Mesures de Protection Environnementale Élargies",
+        "Normes de Sécurité Numérique Mises à Jour",
+        "Projet de Développement Communautaire Réussi"
+      ],
+      de: [
+        "Globale Märkte Zeigen Starke Erholung",
+        "Internationaler Gipfel Befasst sich mit Klimawandel",
+        "Technologische Innovation Verändert Gesundheitswesen",
+        "Bedeutende Archäologische Entdeckung Angekündigt",
+        "Sportmeisterschaft Zieht Rekord-Zuschauerzahlen An",
+        "Neue Weltraum-Forschungsmission Gestartet",
+        "Kulturfestival Feiert Vielfalt",
+        "Wirtschaftswachstum Übertrifft Erwartungen",
+        "Wissenschaftlicher Durchbruch bei Erneuerbaren Energien",
+        "Historisches Abkommen von Weltführern Unterzeichnet",
+        "Bildungsreform-Initiative Vorgestellt",
+        "Verkehrsinfrastruktur Modernisiert",
+        "Umweltschutzmaßnahmen Erweitert",
+        "Digitale Sicherheitsstandards Aktualisiert",
+        "Gemeindeentwicklungsprojekt Erfolgreich"
+      ]
+    };
+    
+    const mockTitles = mockTitlesByLanguage[language] || mockTitlesByLanguage.en;
 
     return WORLDWIDE_LOCATIONS.map((location, index) => {
       const randomOffset = 0.5;
@@ -170,8 +252,8 @@ class NewsAPIService {
         sourceUrl: "#",
         sourceName: `${location.name} News`,
         country: location.region,
-        language: "en",
-        externalId: `mock-worldwide-${index}`,
+        language,
+        externalId: `mock-worldwide-${language}-${index}`,
         userId: null,
         isUserCreated: false,
       };
