@@ -43,8 +43,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Helper function to get diverse, categorized news
-  async function fetchNewsWithFallback() {
-    // Try database first
+  async function fetchNewsWithFallback(language: string = "en") {
+    const supportedLanguage = ["en", "pt", "es", "fr", "de"].includes(language) ? language as any : "en";
+    
+    // Try database first (language-agnostic for now)
     try {
       const dbArticles = await storage.getNewsArticles();
       if (dbArticles && dbArticles.length > 0) {
@@ -57,7 +59,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     // Use the news orchestrator for diverse, categorized news
     try {
-      const articles = await newsOrchestrator.fetchDiverseNews();
+      const articles = await newsOrchestrator.fetchDiverseNews(supportedLanguage);
       if (articles && articles.length > 0) {
         return articles;
       }
@@ -67,7 +69,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     // Final fallback
     try {
-      const fallbackArticles = await newsAPIService.getWorldwideHeadlines();
+      const fallbackArticles = await newsAPIService.getWorldwideHeadlines(supportedLanguage);
       return fallbackArticles;
     } catch (finalError) {
       console.error("All news sources failed:", finalError);
@@ -78,7 +80,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all news articles with diverse categories
   app.get("/api/news", async (req, res) => {
     try {
-      const articles = await fetchNewsWithFallback();
+      const language = (req.query.language as string) || "en";
+      const articles = await fetchNewsWithFallback(language);
       res.json(articles);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch news articles" });
@@ -104,11 +107,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`📍 Fetching fresh news for location: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
 
       // Always fetch categorized news from orchestrator
+      const language = (req.query.language as string) || "en";
+      const supportedLanguage = ["en", "pt", "es", "fr", "de"].includes(language) ? language as any : "en";
       let articles: any[] = [];
       
       try {
         // Try orchestrator (already categorized and deduped)
-        articles = await newsOrchestrator.fetchDiverseNews();
+        articles = await newsOrchestrator.fetchDiverseNews(supportedLanguage);
         console.log(`📥 Orchestrator returned ${articles.length} categorized articles`);
       } catch (orchestratorError) {
         console.warn('Orchestrator failed:', orchestratorError);
@@ -121,7 +126,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         try {
           // Re-fetch through orchestrator to ensure categorization
-          articles = await newsOrchestrator.fetchDiverseNews();
+          articles = await newsOrchestrator.fetchDiverseNews(supportedLanguage);
           console.log(`📥 Fresh orchestrator fetch returned ${articles.length} articles`);
         } catch (refetchError) {
           console.warn('Fresh orchestrator fetch failed:', refetchError);
