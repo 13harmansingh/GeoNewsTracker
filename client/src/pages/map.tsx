@@ -7,9 +7,11 @@ import MapControls from "@/components/map/MapControls";
 import ActionBar from "@/components/map/ActionBar";
 import { useNews } from "@/hooks/use-news";
 import { useArticleExperience } from "@/contexts/ArticleExperienceContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import type { NewsArticle } from "@shared/schema";
 
 export default function MapPage() {
+  const { language } = useLanguage();
   const { selectedArticle, isNewsVisible, openArticle, closeArticle } = useArticleExperience();
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -17,9 +19,9 @@ export default function MapPage() {
   const [mapZoom, setMapZoom] = useState(12);
   const [locationNews, setLocationNews] = useState<NewsArticle[]>([]);
 
-  const { data: allNews = [], isLoading } = useNews.useAllNews();
-  const { data: filteredNews = [] } = useNews.useFilteredNews(activeFilter);
-  const { data: searchResults = [] } = useNews.useSearchNews(searchQuery);
+  const { data: allNews = [], isLoading } = useNews.useAllNews(language);
+  const { data: filteredNews = [] } = useNews.useFilteredNews(activeFilter, language);
+  const { data: searchResults = [] } = useNews.useSearchNews(searchQuery, language);
 
   // Determine which news to display based on current state
   const baseNews = searchQuery 
@@ -38,7 +40,7 @@ export default function MapPage() {
   const handleAreaClick = async (lat: number, lng: number) => {
     console.log(`📍 Fetching news for clicked area: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
     try {
-      const response = await fetch(`/api/news/location-fresh?lat=${lat}&lng=${lng}`);
+      const response = await fetch(`/api/news/location-fresh?lat=${lat}&lng=${lng}&language=${language}`);
       if (response.ok) {
         const freshNews = await response.json();
         console.log(`✅ Fetched ${freshNews.length} fresh news articles for location`);
