@@ -174,6 +174,7 @@ class NewsOrchestrator {
         } catch (finalError) {
           console.error('All news sources failed:', finalError);
           return [];
+        }
       }
     }
   }
