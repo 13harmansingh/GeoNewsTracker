@@ -83,10 +83,12 @@ export default function NavigationBar() {
 
           {/* Center - Logo */}
           <div className="flex flex-col items-center">
-            <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-none">
-              KNEW
-            </h1>
-            <p className="text-xs text-gray-600 font-medium">
+            <img 
+              src="/logo.png" 
+              alt="KNEW" 
+              className="h-12 w-12 object-contain"
+            />
+            <p className="text-xs text-gray-600 font-medium mt-1">
               Global Coverage
             </p>
           </div>
