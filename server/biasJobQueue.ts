@@ -1,5 +1,6 @@
 import { Queue, Worker, Job } from 'bullmq';
 import { biasDetectionService } from './biasDetectionService';
+import { biasWebSocketServer } from './websocket';
 
 interface BiasJobData {
   text: string;
@@ -18,6 +19,12 @@ class BiasJobQueue {
   private worker: Worker<BiasJobData, BiasJobResult> | null = null;
   private useRedis: boolean = false;
   private inMemoryJobs: Map<string, { status: string; result?: BiasJobResult; error?: string }> = new Map();
+  private metrics = {
+    totalProcessed: 0,
+    totalFailed: 0,
+    totalProcessingTime: 0,
+    startTime: Date.now()
+  };
 
   constructor() {
     this.initialize();
@@ -38,10 +45,17 @@ class BiasJobQueue {
         this.worker = new Worker<BiasJobData, BiasJobResult>(
           'bias-detection',
           async (job: Job<BiasJobData, BiasJobResult>) => {
+            const startTime = Date.now();
             console.log(`⚡ Processing bias job ${job.id} for: "${job.data.text.substring(0, 50)}..."`);
             
-            const result = await biasDetectionService.detectBias(job.data.text);
-            const summary = await biasDetectionService.generateNeutralSummary(job.data.text, 80);
+            // Process bias detection and summary in parallel for better performance
+            const [result, summary] = await Promise.all([
+              biasDetectionService.detectBias(job.data.text),
+              biasDetectionService.generateNeutralSummary(job.data.text, 80)
+            ]);
+
+            const elapsed = Date.now() - startTime;
+            console.log(`✅ Job ${job.id} completed in ${elapsed}ms`);
 
             return {
               prediction: result.prediction,
@@ -49,15 +63,40 @@ class BiasJobQueue {
               summary
             };
           },
-          { connection }
+          { 
+            connection,
+            concurrency: 50, // Process up to 50 jobs concurrently
+            limiter: {
+              max: 100, // Max 100 jobs per...
+              duration: 1000 // ...1 second (100 jobs/sec per worker)
+            }
+          }
         );
 
         this.worker.on('completed', (job) => {
-          console.log(`✅ Job ${job.id} completed successfully`);
+          this.metrics.totalProcessed++;
+          console.log(`✅ Job ${job.id} completed successfully (Total: ${this.metrics.totalProcessed})`);
+          
+          // Broadcast completion via WebSocket
+          if (job.returnvalue) {
+            biasWebSocketServer.notifyJobCompleted(
+              job.data.jobId,
+              job.returnvalue
+            );
+          }
         });
 
         this.worker.on('failed', (job, err) => {
+          this.metrics.totalFailed++;
           console.error(`❌ Job ${job?.id} failed:`, err.message);
+          
+          // Broadcast failure via WebSocket
+          if (job) {
+            biasWebSocketServer.notifyJobFailed(
+              job.data.jobId,
+              err.message
+            );
+          }
         });
 
         this.useRedis = true;
@@ -85,6 +124,9 @@ class BiasJobQueue {
         removeOnFail: 50,
       });
 
+      // Broadcast job queued via WebSocket
+      biasWebSocketServer.notifyJobQueued(data.jobId);
+
       return {
         jobId: job.id as string,
         status: 'queued'
@@ -92,6 +134,10 @@ class BiasJobQueue {
     } else {
       // In-memory fallback (synchronous processing)
       const jobId = data.jobId;
+      
+      // Broadcast job queued via WebSocket
+      biasWebSocketServer.notifyJobQueued(jobId);
+      
       this.inMemoryJobs.set(jobId, { status: 'processing' });
 
       try {
@@ -105,8 +151,14 @@ class BiasJobQueue {
         };
 
         this.inMemoryJobs.set(jobId, { status: 'completed', result: jobResult });
+        
+        // Broadcast completion via WebSocket
+        biasWebSocketServer.notifyJobCompleted(jobId, jobResult);
       } catch (error: any) {
         this.inMemoryJobs.set(jobId, { status: 'failed', error: error.message });
+        
+        // Broadcast failure via WebSocket
+        biasWebSocketServer.notifyJobFailed(jobId, error.message);
       }
 
       return {
@@ -171,6 +223,21 @@ class BiasJobQueue {
       active: 0,
       completed,
       failed
+    };
+  }
+
+  getMetrics() {
+    const uptime = Date.now() - this.metrics.startTime;
+    const throughput = this.metrics.totalProcessed / (uptime / 1000);
+    
+    return {
+      totalProcessed: this.metrics.totalProcessed,
+      totalFailed: this.metrics.totalFailed,
+      uptimeMs: uptime,
+      throughputPerSecond: parseFloat(throughput.toFixed(2)),
+      successRate: this.metrics.totalProcessed > 0 
+        ? parseFloat(((this.metrics.totalProcessed / (this.metrics.totalProcessed + this.metrics.totalFailed)) * 100).toFixed(2))
+        : 0
     };
   }
 

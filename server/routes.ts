@@ -6,6 +6,7 @@ import { newsAPIService } from "./newsApiService";
 import { newsOrchestrator } from "./newsOrchestrator";
 import { biasDetectionService } from "./biasDetectionService";
 import { biasJobQueue } from "./biasJobQueue";
+import { biasWebSocketServer } from "./websocket";
 import { MOCK_OWNERSHIP_DATA } from "./ownershipData";
 import { z } from "zod";
 import { setupAuth, isAuthenticated } from "./replitAuth";
@@ -495,6 +496,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/ai/metrics", async (req, res) => {
+    try {
+      const metrics = biasJobQueue.getMetrics();
+      res.json(metrics);
+    } catch (error) {
+      console.error("Error fetching metrics:", error);
+      res.status(500).json({ message: "Failed to fetch metrics" });
+    }
+  });
+
   // Bias analysis endpoints
   app.get("/api/bias/:articleId", async (req, res) => {
     try {
@@ -615,5 +626,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  
+  // Initialize WebSocket server for real-time bias updates
+  biasWebSocketServer.initialize(httpServer);
+  
   return httpServer;
 }
