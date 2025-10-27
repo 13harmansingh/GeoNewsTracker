@@ -1,9 +1,31 @@
 # Knew - Location-Based News Application
 
 ## Overview
-Knew is a professional location-based news platform demonstrating TRL 7 capabilities for EIC grant. The application provides worldwide news coverage with multilingual support (5 languages), AI-powered bias detection, and comprehensive error handling. Built with React/TypeScript frontend and Express/PostgreSQL backend, it features an iOS 26-inspired glassmorphism design optimized for the Replit deployment platform.
+Knew is a professional location-based news platform demonstrating TRL 7 capabilities for EIC grant. The application provides worldwide news coverage with multilingual support (5 languages), AI-powered bias analysis with neutral summarization, sentiment tracking via "KNEW Global Mood Meter", media ownership transparency, and scalable background job processing using BullMQ with Redis and WebSocket real-time updates. Built with React/TypeScript frontend and Express/PostgreSQL backend, it features an iOS 26-inspired glassmorphism design optimized for the Replit deployment platform.
 
 ## Recent Changes (October 27, 2025)
+
+### TRL 7 Enhancements - Phase 3: World News API + KNEW Global Mood Meter (COMPLETED)
+
+- **World News API Integration** (October 27, 2025): Premium news aggregation with sentiment analysis
+  - Replaced NewsAPI.org with World News API as primary news source
+  - Access to 60,000+ worldwide sources (CNN, BBC, Al Jazeera, Reuters, etc.)
+  - Semantic search with geographic filtering for accurate regional news
+  - Real-time sentiment scores (-1 to +1 scale) extracted from API
+  - Language-specific country targeting: German (DE, AT, CH), Portuguese (BR, PT), etc.
+  - Successful testing: Portuguese shows Brazil (-22, -45), English shows UK/US (51-53, 0), German shows Europe
+  - Smart fallback chain: World News API → NewsAPI.org → NewsData.io → Mock Data
+  
+- **KNEW Global Mood Meter** (October 27, 2025): Branded sentiment visualization feature
+  - Real-time sentiment dashboard displayed as percentage breakdown
+  - Visual mood indicator: 😊 (positive), 😐 (neutral), 😟 (concerned)
+  - Three sentiment bars with smooth animations: Positive (green), Neutral (gray), Concerned (red)
+  - Expandable details showing average sentiment score and article count
+  - Automatic refresh every 5 minutes for latest global mood
+  - Language-specific sentiment: EN (30% positive, 35% neutral, 35% negative), PT (100% neutral), DE (40% positive, 10% neutral, 50% negative)
+  - Fixed top-right position with glassmorphism design matching app aesthetic
+  - Rebranded as KNEW proprietary feature powered by World News API
+  - `/api/sentiment?language=en` endpoint with Redis caching
 
 ### TRL 7 Enhancements - Phase 2: Superior Technology Stack (COMPLETED)
 
@@ -146,7 +168,8 @@ Preferred communication style: Simple, everyday language.
 ```
 Language Selection (UI) → LanguageContext → useNews Hooks → 
 API Routes (with language param) → News Orchestrator → 
-NewsAPI (country mapping) → Multilingual Mock Data → 
+World News API (semantic search + sentiment) → NewsAPI (country mapping) → 
+NewsData.io → Multilingual Mock Data → 
 Cached Results (per language) → Client Display
 ```
 
@@ -168,7 +191,7 @@ Cached Results (per language) → Client Display
 - **UI Components**: Radix UI, shadcn/ui
 - **Form Handling**: React Hook Form with Zod resolvers
 - **Date Handling**: date-fns
-- **News APIs**: NewsAPI.org (primary), NewsData.io (fallback)
+- **News APIs**: World News API (primary), NewsAPI.org (fallback), NewsData.io (fallback)
 - **AI Analysis**: HuggingFace Inference API (bias detection model: cardiffnlp/twitter-roberta-base-bias-detection)
 - **Authentication**: Replit Auth (OpenID Connect)
 - **Charts**: Chart.js (ownership visualization)
@@ -188,10 +211,11 @@ Cached Results (per language) → Client Display
 8. Database persistence with caching
 
 ✅ **Free Tier Infrastructure:**
-- NewsAPI.org: 100 requests/day
-- NewsData.io: 200 requests/day
+- World News API: 100 requests/day (primary with sentiment)
+- NewsAPI.org: 100 requests/day (fallback)
+- NewsData.io: 200 requests/day (fallback)
 - HuggingFace: Free inference API
-- Replit: Free hosting + PostgreSQL database
+- Replit: Free hosting + PostgreSQL database + Redis
 - **Total Cost**: $0 for demonstration
 
 ### Next Steps to TRL 8+
@@ -204,8 +228,9 @@ Cached Results (per language) → Client Display
 ## Environment Variables
 
 ### Required
-- `NEWS_API_KEY`: NewsAPI.org key
-- `NEWSDATA_API_KEY`: NewsData.io key (optional with fallback)
+- `WORLDNEWS_API_KEY`: World News API key (primary news source with sentiment)
+- `NEWS_API_KEY`: NewsAPI.org key (fallback)
+- `NEWSDATA_API_KEY`: NewsData.io key (fallback)
 - `HUGGINGFACE_API_KEY`: HuggingFace token for bias detection
 
 ### Optional
@@ -221,7 +246,7 @@ Cached Results (per language) → Client Display
 ## Performance Optimizations
 
 - **Caching Strategy**: 5-minute TTL per language
-- **Smart Fallback**: NewsAPI → NewsData → Mock (no errors to user)
+- **Smart Fallback**: World News API → NewsAPI → NewsData → Mock (no errors to user)
 - **Query Deduplication**: React Query prevents duplicate requests
 - **Language Isolation**: Separate cache keys per language
 - **Debounced Search**: 300ms delay for optimal UX
@@ -229,9 +254,11 @@ Cached Results (per language) → Client Display
 
 ## Known Limitations
 
+- World News API free tier: 100 requests/day (falls back to NewsAPI/mock data)
 - NewsAPI free tier: 100 requests/day (falls back to mock data)
 - NewsData.io free tier: 200 requests/day (falls back to mock data)
 - HuggingFace free tier: Rate limits apply (falls back to mock analysis)
+- Sentiment scores may vary by language (some languages have more neutral sentiment)
 - Replit Auth: HTTPS required (no localhost support)
 
 ## Development Notes

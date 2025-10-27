@@ -90,6 +90,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // KNEW Global Mood Meter - Get sentiment metrics for language
+  app.get("/api/sentiment", async (req, res) => {
+    try {
+      const language = (req.query.language as string) || "en";
+      const supportedLanguage = ["en", "pt", "es", "fr", "de"].includes(language) ? language as any : "en";
+      
+      console.log(`📊 Fetching KNEW Global Mood Meter for ${supportedLanguage}...`);
+      
+      // Get sentiment metrics from orchestrator with caching
+      const sentimentMetrics = await newsOrchestrator.getSentimentMetrics(supportedLanguage);
+      
+      console.log(`✅ Sentiment: ${sentimentMetrics.positive}% positive, ${sentimentMetrics.neutral}% neutral, ${sentimentMetrics.negative}% negative`);
+      
+      res.json(sentimentMetrics);
+    } catch (error) {
+      console.error("Failed to fetch sentiment metrics:", error);
+      res.status(500).json({ message: "Failed to fetch sentiment metrics" });
+    }
+  });
+
   // Create fresh news markers at clicked location - don't save to DB
   app.get("/api/news/location-fresh", async (req: any, res) => {
     try {
