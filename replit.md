@@ -21,7 +21,7 @@ Preferred communication style: Simple, everyday language.
 - **Runtime**: Node.js with ES modules
 - **Database**: PostgreSQL with Drizzle ORM, hosted on Neon Database
 - **Authentication**: Replit Auth with OpenID Connect (Passport.js), PostgreSQL-backed sessions
-- **News Orchestration**: Bulletproof 4-tier fallback chain for zone-based news: NewsAPI.org (primary with country+language) → GNews.io (fallback 1) → NewsData.io (fallback 2) → Bias-tagged mock articles (final). All tiers ensure schema compliance with sentiment field. Supports Nominatim reverse geocoding (lat/lng → country code → language-specific news).
+- **News Orchestration**: True location-based news with 4-tier fallback chain: **World News API with location-filter** (primary: lat/lng + 100km radius + language) → NewsAPI.org (fallback 1: country+language) → GNews.io (fallback 2: country+language) → NewsData.io (fallback 3: worldwide) → Bias-tagged mock articles (final fallback). All tiers ensure schema compliance with sentiment field. Supports Nominatim reverse geocoding (lat/lng → country code). Articles saved to database BEFORE bias analyses to prevent foreign key errors.
 - **Background Jobs**: BullMQ + Redis for async bias detection and summary generation (concurrency=50, 100 jobs/sec rate limit, automatic retry, exponential backoff).
 - **Caching**: Redis layer with 5-minute TTL for news articles and AI results, using language-specific cache keys.
 - **Real-Time**: WebSocket server at `/ws/bias-updates` for live job status notifications (queued, completed, failed).
@@ -45,6 +45,6 @@ Preferred communication style: Simple, everyday language.
 - **UI Components**: Radix UI, shadcn/ui
 - **Form Handling**: React Hook Form with Zod resolvers
 - **Date Handling**: date-fns
-- **News APIs**: NewsAPI.org (primary for zones), GNews.io (fallback 1), NewsData.io (fallback 2), bias-tagged mock data (final fallback ensures demo never breaks)
+- **News APIs**: World News API with location-filter (primary: true lat/lng + radius filtering), NewsAPI.org (fallback 1: country-based), GNews.io (fallback 2: country-based), NewsData.io (fallback 3: worldwide), bias-tagged mock data (final fallback ensures demo never breaks)
 - **AI Analysis**: HuggingFace Inference API (for bias detection and neutral summaries)
 - **Authentication**: Replit Auth (OpenID Connect)
