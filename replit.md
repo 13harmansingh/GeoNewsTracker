@@ -39,6 +39,8 @@ Preferred communication style: Simple, everyday language.
 - Optimized for Replit public URL deployments, utilizing HTTPS-only Replit Auth. Frontend assets built with Vite, served by Express. Backend bundled with esbuild. PostgreSQL and Redis configurations via environment variables.
 
 ## Recent Changes (October 29, 2025)
+- **Fixed seamless API fallback chain**: newsOrchestrator now properly passes language parameter through full fallback: World News API → NewsAPI.org → NewsData.io, ensuring all 5 languages work at every tier
+- **Added mobile search button**: Search bar now shows blue arrow button for submitting searches (previously only had clear X button)
 - **Expanded English to 54 countries worldwide**: NewsAPI.org now fetches from ALL supported countries (ae, ar, at, au, be, bg, br, ca, ch, cn, co, cu, cz, de, eg, fr, gb, gr, hk, hu, id, ie, il, in, it, jp, kr, lt, lv, ma, mx, my, ng, nl, no, nz, ph, pl, pt, ro, rs, ru, sa, se, sg, si, sk, th, tr, tw, ua, us, ve, za) covering all 7 continents
 - **Fixed data integrity**: All news articles now preserve real `publishedAt` timestamps from source APIs (not defaulting to NOW())
 - **Fixed router**: Added `/map` route so map page is accessible at correct URL

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, X } from "lucide-react";
+import { Search, X, ArrowRight } from "lucide-react";
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
@@ -36,15 +36,26 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             className="bg-transparent flex-1 outline-none text-gray-800 placeholder-gray-500 text-sm font-medium"
+            data-testid="input-search"
           />
           {query && (
-            <button
-              type="button"
-              onClick={handleClear}
-              className="touch-feedback p-2 rounded-xl hover:bg-white hover:bg-opacity-20 transition-all ml-2"
-            >
-              <X className="w-4 h-4 text-gray-700" />
-            </button>
+            <>
+              <button
+                type="submit"
+                className="touch-feedback p-2 rounded-xl bg-ios-blue bg-opacity-20 hover:bg-opacity-30 transition-all ml-2"
+                data-testid="button-search"
+              >
+                <ArrowRight className="w-4 h-4 text-ios-blue" />
+              </button>
+              <button
+                type="button"
+                onClick={handleClear}
+                className="touch-feedback p-2 rounded-xl hover:bg-white hover:bg-opacity-20 transition-all ml-1"
+                data-testid="button-clear-search"
+              >
+                <X className="w-4 h-4 text-gray-700" />
+              </button>
+            </>
           )}
         </form>
       </div>

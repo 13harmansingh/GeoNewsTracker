@@ -160,7 +160,7 @@ class NewsOrchestrator {
         console.warn('NewsAPI failed, trying NewsData.io fallback:', fallbackError);
         
         try {
-          const fallbackArticles = await newsService.fetchWorldwideNews();
+          const fallbackArticles = await newsService.fetchWorldwideNews(undefined, undefined, undefined, language);
           const processed = this.processArticles(fallbackArticles);
           
           // Cache fallback results
