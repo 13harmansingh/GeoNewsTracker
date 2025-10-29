@@ -386,6 +386,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`📍 Location request: lat=${latitude}, lng=${longitude}, country=${country}, lang=${supportedLanguage}`);
 
+      // CACHE CHECK FIRST: Check if we have valid cached articles for this location+language
+      if (latitude !== null && longitude !== null && !isNaN(latitude) && !isNaN(longitude)) {
+        const cachedArticles = await storage.getCachedArticlesByLocation(
+          latitude,
+          longitude,
+          1.0, // 1 degree radius (~111km) - wider than World News API radius to catch more cache hits
+          supportedLanguage
+        );
+
+        if (cachedArticles.length > 0) {
+          console.log(`✅ CACHE HIT: Found ${cachedArticles.length} cached articles for ${supportedLanguage} at ${latitude.toFixed(2)}, ${longitude.toFixed(2)}`);
+          return res.json(cachedArticles);
+        }
+
+        console.log(`❌ CACHE MISS: No cached articles found, fetching from APIs...`);
+      }
+
       // PRIMARY: World News API with location-filter (lat/lng + radius) - ONLY TRUE LOCATION-BASED API
       if (latitude !== null && longitude !== null && !isNaN(latitude) && !isNaN(longitude)) {
         try {
@@ -400,10 +417,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (result.articles && result.articles.length > 0) {
             console.log(`✅ PRIMARY SUCCESS: World News API location-filter returned ${result.articles.length} articles`);
             
-            // Save articles to database FIRST to avoid foreign key errors
+            // Set cache expiry (1 hour from now)
+            const cacheExpiresAt = new Date(Date.now() + 3600000); // 1 hour TTL
+            
+            // Save articles to database FIRST with cache expiry to avoid foreign key errors
             for (const article of result.articles) {
               try {
-                await storage.createNewsArticle(article);
+                await storage.createNewsArticle({
+                  ...article,
+                  cacheExpiresAt
+                });
               } catch (dbError) {
                 // Ignore duplicate errors
                 if (!(dbError instanceof Error) || !dbError.message.includes('duplicate')) {
@@ -426,10 +449,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (articles && articles.length > 0) {
             console.log(`✅ FALLBACK 1 SUCCESS: NewsAPI.org (country-based) returned ${articles.length} articles`);
             
-            // Save to database
+            // Set cache expiry (1 hour from now)
+            const cacheExpiresAt = new Date(Date.now() + 3600000); // 1 hour TTL
+            
+            // Save to database with cache expiry
             for (const article of articles) {
               try {
-                await storage.createNewsArticle(article);
+                await storage.createNewsArticle({
+                  ...article,
+                  cacheExpiresAt
+                });
               } catch (dbError) {
                 if (!(dbError instanceof Error) || !dbError.message.includes('duplicate')) {
                   console.warn(`Failed to save article to DB:`, dbError);
@@ -451,10 +480,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (articles && articles.length > 0) {
             console.log(`✅ FALLBACK 2 SUCCESS: GNews.io returned ${articles.length} articles`);
             
-            // Save to database
+            // Set cache expiry (1 hour from now)
+            const cacheExpiresAt = new Date(Date.now() + 3600000); // 1 hour TTL
+            
+            // Save to database with cache expiry
             for (const article of articles) {
               try {
-                await storage.createNewsArticle(article);
+                await storage.createNewsArticle({
+                  ...article,
+                  cacheExpiresAt
+                });
               } catch (dbError) {
                 if (!(dbError instanceof Error) || !dbError.message.includes('duplicate')) {
                   console.warn(`Failed to save article to DB:`, dbError);
@@ -475,10 +510,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (articles && articles.length > 0) {
           console.log(`✅ FALLBACK 3 SUCCESS: NewsData.io returned ${articles.length} articles`);
           
-          // Save to database
+          // Set cache expiry (1 hour from now)
+          const cacheExpiresAt = new Date(Date.now() + 3600000); // 1 hour TTL
+          
+          // Save to database with cache expiry
           for (const article of articles.slice(0, 20)) {
             try {
-              await storage.createNewsArticle(article);
+              await storage.createNewsArticle({
+                ...article,
+                cacheExpiresAt
+              });
             } catch (dbError) {
               if (!(dbError instanceof Error) || !dbError.message.includes('duplicate')) {
                 console.warn(`Failed to save article to DB:`, dbError);
@@ -512,6 +553,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error in /api/news/location:", error);
       
       // Even if everything fails, return mock data so demo doesn't break
+      const country = req.query.country;
       const fallbackCountry = typeof country === 'string' ? country : 'US';
       const language = req.query.language as string || 'en';
       const supportedLanguage = ["en", "pt", "es", "fr", "de"].includes(language) ? language as any : "en";

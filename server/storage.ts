@@ -8,7 +8,7 @@ import {
   type EventHistory, type InsertEventHistory
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -167,7 +167,10 @@ class MemStorage implements IStorage {
         language: "en", // Default language for seeded articles
         externalId: null,
         userId: null,
-        isUserCreated: false
+        isUserCreated: false,
+        sentiment: null,
+        fetchedAt: new Date(),
+        cacheExpiresAt: null
       };
       this.newsArticles.set(id, newsArticle);
     });
@@ -249,6 +252,11 @@ class MemStorage implements IStorage {
       country: insertArticle.country ?? null,
       language: insertArticle.language ?? null,
       externalId: insertArticle.externalId ?? null,
+      userId: insertArticle.userId ?? null,
+      isUserCreated: insertArticle.isUserCreated ?? false,
+      sentiment: insertArticle.sentiment ?? null,
+      fetchedAt: insertArticle.fetchedAt ?? new Date(),
+      cacheExpiresAt: insertArticle.cacheExpiresAt ?? null
     };
     this.newsArticles.set(id, article);
     return article;

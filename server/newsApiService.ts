@@ -48,7 +48,8 @@ const WORLDWIDE_LOCATIONS: Array<{ lat: number; lng: number; name: string; regio
 ];
 
 const LANGUAGE_TO_COUNTRIES: Record<SupportedLanguage, string[]> = {
-  en: ['us', 'gb', 'au', 'ca', 'in'],
+  // English: Worldwide coverage across all continents
+  en: ['us', 'gb', 'au', 'ca', 'in', 'ie', 'nz', 'sg', 'za', 'ae', 'hk', 'ng', 'my', 'ph'],
   pt: ['br', 'pt'],
   es: ['es', 'mx', 'ar', 'co'],
   fr: ['fr', 'ca', 'be'],
@@ -296,6 +297,8 @@ class NewsAPIService {
         externalId: `mock-worldwide-${language}-${index}`,
         userId: null,
         isUserCreated: false,
+        fetchedAt: new Date(),
+        cacheExpiresAt: null,
       };
     });
   }
@@ -416,6 +419,8 @@ class NewsAPIService {
       externalId: `mock-${countryCode}-${index}`,
       userId: null,
       isUserCreated: false,
+      fetchedAt: new Date(),
+      cacheExpiresAt: null,
     }));
   }
 
@@ -549,6 +554,8 @@ class NewsAPIService {
       externalId: `mock-${countryCode}-${index}`,
       userId: null,
       isUserCreated: false,
+      fetchedAt: new Date(),
+      cacheExpiresAt: null,
     }));
   }
 }
