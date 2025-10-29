@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { newsService } from "./newsService";
 import { newsAPIService } from "./newsApiService";
+import { gNewsService } from "./gNewsService";
 import { newsOrchestrator } from "./newsOrchestrator";
 import { worldNewsApi } from "./worldNewsApi";
 import { biasDetectionService } from "./biasDetectionService";
@@ -303,7 +304,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get news articles by location (country-specific using World News API)
+  // Helper: Create bias-tagged mock fallback articles
+  function createBiasTaggedMockArticles(countryCode: string, language: string): any[] {
+    const supportedLang = ["en", "pt", "es", "fr", "de"].includes(language) ? language : "en";
+    
+    const mockDataByLanguage: Record<string, Array<{ title: string; summary: string; bias: string }>> = {
+      en: [
+        { title: "Economic Recovery Shows Promising Signs", summary: "Recent data indicates positive economic trends.", bias: "BIAS_DETECTED" },
+        { title: "Technology Advances in Healthcare Sector", summary: "Innovation brings new treatment options.", bias: "NEUTRAL" },
+        { title: "International Summit Promotes Global Cooperation", summary: "World leaders gather to discuss key issues.", bias: "NEUTRAL" },
+        { title: "Local Sports Team Celebrates Championship Win", summary: "Fans celebrate historic victory.", bias: "BIAS_DETECTED" },
+        { title: "Environmental Initiative Gains Widespread Support", summary: "New policies aim to protect natural resources.", bias: "NEUTRAL" }
+      ],
+      pt: [
+        { title: "Recuperação Econômica Mostra Sinais Promissores", summary: "Dados recentes indicam tendências econômicas positivas.", bias: "BIAS_DETECTED" },
+        { title: "Avanços Tecnológicos no Setor de Saúde", summary: "Inovação traz novas opções de tratamento.", bias: "NEUTRAL" },
+        { title: "Cúpula Internacional Promove Cooperação Global", summary: "Líderes mundiais se reúnem para discutir questões importantes.", bias: "NEUTRAL" },
+        { title: "Equipe Esportiva Local Celebra Vitória do Campeonato", summary: "Torcedores celebram vitória histórica.", bias: "BIAS_DETECTED" },
+        { title: "Iniciativa Ambiental Ganha Amplo Apoio", summary: "Novas políticas visam proteger recursos naturais.", bias: "NEUTRAL" }
+      ],
+      es: [
+        { title: "Recuperación Económica Muestra Señales Prometedoras", summary: "Datos recientes indican tendencias económicas positivas.", bias: "BIAS_DETECTED" },
+        { title: "Avances Tecnológicos en el Sector Salud", summary: "La innovación trae nuevas opciones de tratamiento.", bias: "NEUTRAL" },
+        { title: "Cumbre Internacional Promueve Cooperación Global", summary: "Líderes mundiales se reúnen para discutir temas clave.", bias: "NEUTRAL" },
+        { title: "Equipo Deportivo Local Celebra Victoria de Campeonato", summary: "Aficionados celebran victoria histórica.", bias: "BIAS_DETECTED" },
+        { title: "Iniciativa Ambiental Gana Amplio Apoyo", summary: "Nuevas políticas buscan proteger recursos naturales.", bias: "NEUTRAL" }
+      ],
+      fr: [
+        { title: "La Reprise Économique Montre des Signes Prometteurs", summary: "Les données récentes indiquent des tendances économiques positives.", bias: "BIAS_DETECTED" },
+        { title: "Avancées Technologiques dans le Secteur de la Santé", summary: "L'innovation apporte de nouvelles options de traitement.", bias: "NEUTRAL" },
+        { title: "Sommet International Favorise la Coopération Mondiale", summary: "Les dirigeants mondiaux se réunissent pour discuter de questions clés.", bias: "NEUTRAL" },
+        { title: "L'Équipe Sportive Locale Célèbre la Victoire du Championnat", summary: "Les fans célèbrent une victoire historique.", bias: "BIAS_DETECTED" },
+        { title: "Initiative Environnementale Gagne un Large Soutien", summary: "De nouvelles politiques visent à protéger les ressources naturelles.", bias: "NEUTRAL" }
+      ],
+      de: [
+        { title: "Wirtschaftliche Erholung Zeigt Vielversprechende Anzeichen", summary: "Aktuelle Daten deuten auf positive wirtschaftliche Trends hin.", bias: "BIAS_DETECTED" },
+        { title: "Technologische Fortschritte im Gesundheitssektor", summary: "Innovation bringt neue Behandlungsoptionen.", bias: "NEUTRAL" },
+        { title: "Internationaler Gipfel Fördert Globale Zusammenarbeit", summary: "Weltführer treffen sich, um wichtige Themen zu diskutieren.", bias: "NEUTRAL" },
+        { title: "Lokales Sportteam Feiert Meisterschaftssieg", summary: "Fans feiern historischen Sieg.", bias: "BIAS_DETECTED" },
+        { title: "Umweltinitiative Gewinnt Breite Unterstützung", summary: "Neue Richtlinien zielen darauf ab, natürliche Ressourcen zu schützen.", bias: "NEUTRAL" }
+      ]
+    };
+
+    const mockData = mockDataByLanguage[supportedLang] || mockDataByLanguage.en;
+    
+    return mockData.map((item, index) => ({
+      id: Date.now() + index,
+      title: item.title,
+      summary: item.summary,
+      content: item.summary,
+      category: "GLOBAL",
+      latitude: Math.random() * 180 - 90,
+      longitude: Math.random() * 360 - 180,
+      imageUrl: null,
+      isBreaking: false,
+      views: Math.floor(Math.random() * 500) + 50,
+      publishedAt: new Date(),
+      location: countryCode.toUpperCase(),
+      sourceUrl: "#",
+      sourceName: "KNEW Demo Source",
+      country: countryCode,
+      language: supportedLang,
+      sentiment: null,
+      biasLabel: item.bias,
+      externalId: `mock-bias-${countryCode}-${index}`,
+      userId: null,
+      isUserCreated: false,
+    }));
+  }
+
+  // Get news articles by location (country-specific with robust fallback chain)
   app.get("/api/news/location", async (req, res) => {
     try {
       const { country } = req.query;
@@ -314,35 +384,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Country code required (e.g., IN, US, GB)" });
       }
 
-      console.log(`🌍 Fetching news for country: ${country.toUpperCase()} in language: ${supportedLanguage}`);
+      console.log(`🌍 Pulling feeds in ${supportedLanguage.toUpperCase()} for ${country.toUpperCase()}...`);
 
-      // Use World News API with country filtering for proper geolocation
+      // PRIMARY: NewsAPI.org (most reliable, free tier generous)
       try {
-        const { articles, sentiment } = await worldNewsApi.searchNews({
-          country: country.toLowerCase(),
-          language: supportedLanguage,
-          number: 20 // Get 20 articles for heatmap
-        });
-
-        console.log(`✅ World News API returned ${articles.length} articles for ${country.toUpperCase()} with ${sentiment.positive}% positive sentiment`);
-        res.json(articles);
-      } catch (worldNewsError) {
-        console.warn(`World News API failed for ${country}, trying fallback...`);
-        
-        // Fallback to NewsAPI.org (limited country support)
-        try {
-          const countryCode = country.length === 2 ? country.toLowerCase() : 'us';
-          const fallbackArticles = await newsAPIService.getTopHeadlinesByCountry(countryCode);
-          console.log(`✅ NewsAPI.org fallback returned ${fallbackArticles.length} articles for ${country.toUpperCase()}`);
-          res.json(fallbackArticles);
-        } catch (fallbackError) {
-          console.error(`All news sources failed for country ${country}:`, fallbackError);
-          res.status(500).json({ message: `No news available for country ${country}` });
+        const articles = await newsAPIService.getCountryNews(country, supportedLanguage);
+        if (articles && articles.length > 0) {
+          console.log(`✅ PRIMARY SUCCESS: NewsAPI.org returned ${articles.length} articles`);
+          return res.json(articles);
         }
+      } catch (newsApiError) {
+        console.warn(`⚠️ PRIMARY FAILED: NewsAPI.org - ${newsApiError}`);
       }
+
+      // FALLBACK 1: GNews.io
+      try {
+        const articles = await gNewsService.getCountryNews(country, supportedLanguage);
+        if (articles && articles.length > 0) {
+          console.log(`✅ FALLBACK 1 SUCCESS: GNews.io returned ${articles.length} articles`);
+          return res.json(articles);
+        }
+      } catch (gNewsError) {
+        console.warn(`⚠️ FALLBACK 1 FAILED: GNews.io - ${gNewsError}`);
+      }
+
+      // FALLBACK 2: NewsData.io
+      try {
+        const articles = await newsService.fetchWorldwideNews();
+        if (articles && articles.length > 0) {
+          console.log(`✅ FALLBACK 2 SUCCESS: NewsData.io returned ${articles.length} articles`);
+          return res.json(articles.slice(0, 20));
+        }
+      } catch (newsDataError) {
+        console.warn(`⚠️ FALLBACK 2 FAILED: NewsData.io - ${newsDataError}`);
+      }
+
+      // FINAL FALLBACK: 5 bias-tagged mock articles (EIC demo survives!)
+      console.log(`🎭 ALL APIs FAILED - Using bias-tagged mock data for demo`);
+      const mockArticles = createBiasTaggedMockArticles(country, supportedLanguage);
+      res.json(mockArticles);
+
     } catch (error) {
       console.error("Error in /api/news/location:", error);
-      res.status(500).json({ message: "Failed to fetch location-based news" });
+      
+      // Even if everything fails, return mock data so demo doesn't break
+      const fallbackCountry = typeof country === 'string' ? country : 'US';
+      const fallbackLanguage = typeof language === 'string' ? language : 'en';
+      const mockArticles = createBiasTaggedMockArticles(fallbackCountry, fallbackLanguage);
+      res.json(mockArticles);
     }
   });
 

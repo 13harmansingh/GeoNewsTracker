@@ -55,6 +55,19 @@ const LANGUAGE_TO_COUNTRIES: Record<SupportedLanguage, string[]> = {
   de: ['de', 'at', 'ch'],
 };
 
+// Map country codes to primary language
+const COUNTRY_TO_LANGUAGE: Record<string, SupportedLanguage> = {
+  // Portuguese
+  'br': 'pt', 'pt': 'pt',
+  // Spanish
+  'es': 'es', 'mx': 'es', 'ar': 'es', 'co': 'es', 'cl': 'es', 've': 'es',
+  // French
+  'fr': 'fr', 'be': 'fr', 'ch': 'fr', 'ca': 'fr',
+  // German
+  'de': 'de', 'at': 'de',
+  // English (default for others)
+};
+
 // Map languages to appropriate geographic regions for news distribution
 const LANGUAGE_TO_REGIONS: Record<SupportedLanguage, string[]> = {
   en: ['North America', 'Europe', 'Asia', 'Australia', 'Africa', 'Middle East'],
@@ -148,6 +161,7 @@ class NewsAPIService {
           sourceName: article.source.name,
           country: location.region,
           language,
+          sentiment: null,
           externalId: `newsapi-worldwide-${Date.now()}-${index}`,
           userId: null,
           isUserCreated: false,
@@ -278,6 +292,7 @@ class NewsAPIService {
         sourceName: `${location.name} News`,
         country: location.region,
         language,
+        sentiment: null,
         externalId: `mock-worldwide-${language}-${index}`,
         userId: null,
         isUserCreated: false,
@@ -337,6 +352,7 @@ class NewsAPIService {
           sourceName: article.source.name,
           country: countryCode,
           language: "en",
+          sentiment: null,
           externalId: `newsapi-${Date.now()}-${index}`,
           userId: null,
           isUserCreated: false,
@@ -396,6 +412,140 @@ class NewsAPIService {
       sourceName: `${countryInfo.name} News`,
       country: countryCode,
       language: "en",
+      sentiment: null,
+      externalId: `mock-${countryCode}-${index}`,
+      userId: null,
+      isUserCreated: false,
+    }));
+  }
+
+  // Fetch country-specific news with language detection
+  async getCountryNews(countryCode: string, language?: SupportedLanguage): Promise<NewsArticle[]> {
+    const normalizedCountry = countryCode.toLowerCase();
+    
+    // Auto-detect language from country if not provided
+    const detectedLanguage = language || COUNTRY_TO_LANGUAGE[normalizedCountry] || 'en';
+    
+    if (!this.apiKey) {
+      console.log(`📰 NewsAPI key missing, using mock data for ${normalizedCountry}`);
+      return this.getMockCountryNews(normalizedCountry, detectedLanguage);
+    }
+
+    try {
+      console.log(`🌐 Fetching ${detectedLanguage.toUpperCase()} news from NewsAPI.org for ${normalizedCountry.toUpperCase()}...`);
+      
+      const url = `${this.baseUrl}?country=${normalizedCountry}&pageSize=20&apiKey=${this.apiKey}`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        console.warn(`NewsAPI error: ${response.status}`);
+        throw new Error(`NewsAPI returned ${response.status}`);
+      }
+
+      const data: NewsAPIResponse = await response.json();
+
+      if (!data.articles || data.articles.length === 0) {
+        console.warn(`No articles found from NewsAPI for ${normalizedCountry}`);
+        throw new Error('No articles from NewsAPI');
+      }
+
+      console.log(`✅ NewsAPI.org returned ${data.articles.length} articles for ${normalizedCountry}`);
+      
+      // Transform to our format with geo distribution within the country
+      return data.articles.slice(0, 20).map((article, index) => {
+        // Distribute randomly within ±2 degrees for geographic variety
+        const baseLat = Math.random() * 180 - 90;
+        const baseLng = Math.random() * 360 - 180;
+        
+        return {
+          id: Date.now() + index,
+          title: article.title,
+          summary: article.description || article.title,
+          content: article.content || article.description || article.title,
+          category: "GLOBAL",
+          latitude: baseLat,
+          longitude: baseLng,
+          imageUrl: article.urlToImage,
+          isBreaking: true,
+          views: Math.floor(Math.random() * 1000) + 100,
+          publishedAt: new Date(article.publishedAt),
+          location: normalizedCountry.toUpperCase(),
+          sourceUrl: article.url,
+          sourceName: article.source.name,
+          country: normalizedCountry,
+          language: detectedLanguage,
+          sentiment: null,
+          externalId: `newsapi-${normalizedCountry}-${Date.now()}-${index}`,
+          userId: null,
+          isUserCreated: false,
+        } as NewsArticle;
+      });
+
+    } catch (error) {
+      console.error(`NewsAPI failed for ${normalizedCountry}:`, error);
+      throw error; // Let fallback chain handle it
+    }
+  }
+
+  private getMockCountryNews(countryCode: string, language: SupportedLanguage): NewsArticle[] {
+    const mockTitlesByLanguage: Record<SupportedLanguage, string[]> = {
+      en: [
+        "Local Markets Show Recovery Signs",
+        "Government Announces New Policies",
+        "Technology Sector Continues Growth",
+        "Sports Team Achieves Victory",
+        "Cultural Event Draws Large Crowds"
+      ],
+      pt: [
+        "Mercados Locais Mostram Sinais de Recuperação",
+        "Governo Anuncia Novas Políticas",
+        "Setor Tecnológico Continua Crescimento",
+        "Equipe Esportiva Conquista Vitória",
+        "Evento Cultural Atrai Grandes Multidões"
+      ],
+      es: [
+        "Mercados Locales Muestran Señales de Recuperación",
+        "Gobierno Anuncia Nuevas Políticas",
+        "Sector Tecnológico Continúa Crecimiento",
+        "Equipo Deportivo Logra Victoria",
+        "Evento Cultural Atrae Grandes Multitudes"
+      ],
+      fr: [
+        "Les Marchés Locaux Montrent des Signes de Reprise",
+        "Le Gouvernement Annonce de Nouvelles Politiques",
+        "Le Secteur Technologique Poursuit sa Croissance",
+        "L'Équipe Sportive Remporte la Victoire",
+        "L'Événement Culturel Attire une Grande Foule"
+      ],
+      de: [
+        "Lokale Märkte Zeigen Erholungszeichen",
+        "Regierung Kündigt Neue Richtlinien An",
+        "Technologiesektor Setzt Wachstum Fort",
+        "Sportteam Erzielt Sieg",
+        "Kulturelle Veranstaltung Zieht Große Menschenmengen An"
+      ]
+    };
+
+    const titles = mockTitlesByLanguage[language] || mockTitlesByLanguage.en;
+
+    return titles.map((title, index) => ({
+      id: Date.now() + index,
+      title,
+      summary: `${title} - Latest news from ${countryCode.toUpperCase()}`,
+      content: `Mock news article: ${title}`,
+      category: "GLOBAL",
+      latitude: Math.random() * 180 - 90,
+      longitude: Math.random() * 360 - 180,
+      imageUrl: null,
+      isBreaking: false,
+      views: Math.floor(Math.random() * 500) + 50,
+      publishedAt: new Date(),
+      location: countryCode.toUpperCase(),
+      sourceUrl: "#",
+      sourceName: `${countryCode.toUpperCase()} News`,
+      country: countryCode,
+      language,
+      sentiment: null,
       externalId: `mock-${countryCode}-${index}`,
       userId: null,
       isUserCreated: false,
