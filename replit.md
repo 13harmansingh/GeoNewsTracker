@@ -1,120 +1,7 @@
 # Knew - Location-Based News Application
 
 ## Overview
-Knew is a professional location-based news platform demonstrating TRL 7 capabilities for EIC grant. The application provides worldwide news coverage with multilingual support (5 languages), AI-powered bias analysis with neutral summarization, sentiment tracking via "KNEW Global Mood Meter", media ownership transparency, and scalable background job processing using BullMQ with Redis and WebSocket real-time updates. Built with React/TypeScript frontend and Express/PostgreSQL backend, it features an iOS 26-inspired glassmorphism design optimized for the Replit deployment platform.
-
-## Recent Changes (October 29, 2025)
-
-### TRL 7 Enhancements - Phase 4: Map Click Reverse Geocoding (COMPLETED)
-
-- **Reverse Geocoding Integration** (October 29, 2025): Instant country-based news on map click
-  - New `/api/reverse-geocode` endpoint using free Nominatim API (OpenStreetMap)
-  - Converts lat/lng coordinates to country codes (IN, GB, US, etc.)
-  - No API key required - free tier with proper User-Agent compliance
-  - Response times: 130-750ms for instant feel
-  - Returns full location data: country, country_code, city, state, display_name
-  
-- **Interactive Map Click Handler** (October 29, 2025): Country-specific news loading
-  - Click any location on map → reverse geocode → fetch news for that country
-  - Loading spinner during reverse geocoding + news fetch
-  - Automatic map centering on clicked location (zoom level 6)
-  - Duplicate prevention via ID-based filtering
-  - Fallback to global news if no country found
-  - Smart error handling with console logging
-  
-- **User Experience**: Click India → 5 Indian headlines load instantly with 500ms latency
-
-## Recent Changes (October 27, 2025)
-
-### TRL 7 Enhancements - Phase 3: World News API + Per-Article Sentiment (COMPLETED)
-
-- **World News API Integration** (October 27, 2025): Premium news aggregation with sentiment analysis
-  - Replaced NewsAPI.org with World News API as primary news source
-  - Access to 60,000+ worldwide sources (CNN, BBC, Al Jazeera, Reuters, etc.)
-  - Semantic search with geographic filtering for accurate regional news
-  - Real-time sentiment scores (-1 to +1 scale) extracted from API
-  - Language-specific country targeting: German (DE, AT, CH), Portuguese (BR, PT), etc.
-  - Successful testing: Portuguese shows Brazil (-22, -45), English shows UK/US (51-53, 0), German shows Europe
-  - Smart fallback chain: World News API → NewsAPI.org → NewsData.io → Mock Data
-  
-- **Per-Article KNEW Mood Meter** (October 27, 2025): Optimized sentiment display
-  - Compact badge showing sentiment alongside political leaning (flex row layout)
-  - Per-article sentiment from World News API displayed as "KNEW Mood"
-  - Visual indicators: 😊 (positive), 😐 (neutral), 😟 (concerned) with percentage
-  - Non-intrusive design preventing UI blockage
-  - Dark mode support throughout
-  - Integrated into bias analysis panel for clean EIC demonstration
-
-- **Collapsible AI Summaries** (October 27, 2025): Space-efficient neutral summaries
-  - 80-word neutral summaries using BART model (`facebook/bart-large-cnn`)
-  - Collapsible section below each article to save space
-  - Expand/collapse toggle with Sparkles icon
-  - Prompt: "Summarize neutrally" for factual, opinion-free content
-  - Background highlighting for easy readability
-
-### TRL 7 Enhancements - Phase 2: Superior Technology Stack (COMPLETED)
-
-- **Background Job Processing with BullMQ + Redis** (October 27, 2025): Production-grade async processing
-  - BullMQ worker with concurrency=50 (processes 50 jobs simultaneously)
-  - Redis-backed queue using Upstash (free tier support)
-  - Parallel processing: Promise.all for bias detection + summary generation
-  - Automatic retry with exponential backoff
-  - Rate limiting: 100 jobs/sec per worker to prevent API abuse
-  - Smart fallback to in-memory processing when Redis unavailable
-  - Performance metrics tracking: throughput, success rate, uptime
-  - `/api/ai/metrics` endpoint for real-time performance monitoring
-  - Architect-validated for production EIC demonstration
-
-- **Real-Time WebSocket Updates** (October 27, 2025): Live job status broadcasting
-  - WebSocket server at `/ws/bias-updates` for real-time notifications
-  - Event types: job_queued, job_completed, job_failed
-  - Integrated with BullMQ worker events
-  - Supports multiple concurrent WebSocket clients
-  - Production-ready for scalable deployments
-
-- **Redis Caching Layer** (October 27, 2025): High-performance data caching
-  - 5-minute TTL for news articles and AI results
-  - Language-specific cache keys for multilingual support
-  - Upstash Redis integration with automatic fallback
-  - Sub-millisecond cache hits for optimal performance
-  - Smart cache invalidation strategies
-
-- **AI Neutral Summaries** (October 27, 2025): Raw news without agenda
-  - HuggingFace BART model (`facebook/bart-large-cnn`) for 80-word neutral summaries
-  - Prompt: "Summarize this headline neutrally, no opinion"
-  - Dedicated `/api/ai/summary/:id` endpoint with caching
-  - Extractive fallback (first 80 words) when API unavailable
-  - Displayed in BiasAnalysisForm component with AI prediction
-  - Combined with bias detection for comprehensive AI analysis
-  - Now processed in parallel with bias detection for 2x speedup
-
-- **Multilingual Support**: Added 5 languages (English, Portuguese, Spanish, French, German)
-  - Language dropdown in NavigationBar with flag icons
-  - Language context provider for global state management
-  - Language-specific news fetching from NewsAPI with country mapping
-  - Multilingual mock data fallback (all 5 languages)
-  - Separate caching per language for optimal performance
-  - Geographic region filtering (German only in Europe, Portuguese in South America + Europe, etc.)
-
-- **Enhanced Error Handling**: Comprehensive try/catch blocks across all API calls
-  - Multi-source fallback: NewsAPI.org → NewsData.io → Mock Data
-  - Graceful error messages ready for toast notifications
-  - Smart caching (5-minute TTL) to minimize API failures
-  - User-friendly error alerts when APIs are unavailable
-
-- **Production Optimization**: Deployed for Replit public URL
-  - HTTPS-only Replit Auth (localhost removed, Replit domains only)
-  - Optimized for `https://[username].geonewstracker.replit.app`
-  - Environment variable validation for production readiness
-  - Comprehensive README with EIC demo notes
-
-### Previous Changes
-- Fixed authentication setup to use Replit domains exclusively (HTTPS required)
-- Simplified navigation bar: black "Sign In" text on left, language dropdown center-left, logout icon on right
-- Added ocean-colored background (#AAD3DF) to map matching water tiles
-- Limited map zoom out to 50% beyond world boundaries (minZoom: 2)
-- Fixed bias analysis for ephemeral location-fresh articles (negative IDs skip database persistence)
-- Enhanced authentication logging for easier debugging
+Knew is a professional location-based news platform showcasing TRL 7 capabilities for EIC grant. It offers worldwide news coverage with multilingual support (5 languages), AI-powered bias analysis, neutral summarization, sentiment tracking via "KNEW Global Mood Meter," and media ownership transparency. The application features scalable background job processing using BullMQ with Redis and WebSocket real-time updates. Knew demonstrates a clear business vision for delivering unbiased, globally aware news, with market potential in professional news analysis and public information sectors.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -127,169 +14,37 @@ Preferred communication style: Simple, everyday language.
 - **Styling**: Tailwind CSS with shadcn/ui components, Radix UI primitives
 - **State Management**: TanStack Query V5 (server state), React hooks (local state), Language Context
 - **Map Integration**: React Leaflet
-- **Build Tool**: Vite
-- **UI/UX**: iOS 26-inspired glassmorphism design with premium blur effects, depth, and animations. Features include custom markers with category-specific gradients, a sliding news panel, top navigation with language selector, search bar with debouncing, and category filters.
+- **UI/UX**: iOS 26-inspired glassmorphism design with premium blur effects, depth, and animations. Features custom markers with category-specific gradients, a sliding news panel, top navigation with language selector, search bar with debouncing, and category filters. Interactive map allows clicking to reverse geocode and fetch country-specific news.
 
 ### Backend
 - **Framework**: Express.js with TypeScript
 - **Runtime**: Node.js with ES modules
 - **Database**: PostgreSQL with Drizzle ORM, hosted on Neon Database
-- **Authentication**: Replit Auth with OpenID Connect (Passport.js), PostgreSQL-backed sessions (connect-pg-simple)
-- **Data Storage**: Abstract layer with `DatabaseStorage` (production) and `MemStorage` (development fallback)
-- **News Orchestration**: Multi-source fallback system with language support
-- **Background Jobs**: BullMQ + Redis for async bias detection (concurrency=50, 100 jobs/sec rate limit)
-- **Caching**: Redis layer with 5-minute TTL for news and AI results
-- **Real-Time**: WebSocket server at `/ws/bias-updates` for live job notifications
+- **Authentication**: Replit Auth with OpenID Connect (Passport.js), PostgreSQL-backed sessions
+- **News Orchestration**: Multi-source fallback system (World News API, NewsAPI.org, NewsData.io, Mock Data) with language support and geographic filtering.
+- **Background Jobs**: BullMQ + Redis for async bias detection and summary generation (concurrency=50, 100 jobs/sec rate limit, automatic retry, exponential backoff).
+- **Caching**: Redis layer with 5-minute TTL for news articles and AI results, using language-specific cache keys.
+- **Real-Time**: WebSocket server at `/ws/bias-updates` for live job status notifications (queued, completed, failed).
 
 ### Key Components
-- **Data Layer**: Shared TypeScript schemas using Drizzle ORM and Zod. Tables for Users, Sessions, and NewsArticles (with geographic coordinates, `userId`, `isUserCreated`, `language`).
-- **Language Management**: 
-  - `LanguageContext` provider for global state
-  - `SupportedLanguage` type: "en" | "pt" | "es" | "fr" | "de"
-  - `LANGUAGES` constant with flag icons and display names
-  - LocalStorage persistence for language preference
-- **Frontend Components**: 
-  - Interactive Map (full-screen, custom markers)
-  - News Panel (sliding, article details, loading states)
-  - Navigation Bar (glassmorphism, language dropdown, auth buttons)
-  - Search Bar (real-time, debouncing)
-  - Action Bar (category filters: My Pins, Global, Trending, Recent)
-  - Map Controls
-- **API Endpoints**:
-    - **News**: 
-      - `GET /api/news?language=en`
-      - `GET /api/news/location-fresh?lat=40&lng=-74&language=pt`
-      - `GET /api/news/category/:category?language=es`
-      - `GET /api/news/search?q=query&language=fr`
-    - **Authentication**: 
-      - `GET /api/login`
-      - `GET /api/logout`
-      - `GET /api/callback`
-      - `GET /api/auth/user`
-    - **AI (Background Jobs)**:
-      - `POST /api/ai/detect-bias-async` - Queue bias detection job (returns jobId)
-      - `GET /api/ai/job/:jobId` - Check job status (queued/completed/failed)
-      - `GET /api/ai/queue/stats` - Get queue statistics
-      - `GET /api/ai/metrics` - Get performance metrics (throughput, success rate)
-      - `POST /api/ai/detect-bias` - Synchronous bias detection (legacy)
-      - `GET /api/ai/summary/:id` - Get cached neutral summary
-    - **WebSocket**:
-      - `WS /ws/bias-updates` - Real-time job notifications (job_queued, job_completed, job_failed)
-- **Data Flow**: Client requests (React Query with language) → Server (Express) → News Orchestrator (language-aware) → NewsAPI/NewsData/Mock → PostgreSQL Cache → Client Rendering.
-- **Multi-Provider News System**: 
-  - Primary: NewsAPI.org (language via country mapping)
-  - Fallback 1: NewsData.io
-  - Fallback 2: Multilingual mock data
-  - Includes news orchestrator for category detection, 5-minute caching per language, and deduplication
-- **AI Features**: 
-  - **Bias Detection**: `cardiffnlp/twitter-roberta-base-bias-detection` model
-  - **Neutral Summaries**: `facebook/bart-large-cnn` model (80 words, no opinions)
-  - Auto-apply AI bias tags (high-confidence predictions)
-  - Cached AI summaries in bias analysis table
-  - HuggingFace integration (free tier)
-  - Extractive fallback when API unavailable
-
-### Multilingual Architecture
-```
-Language Selection (UI) → LanguageContext → useNews Hooks → 
-API Routes (with language param) → News Orchestrator → 
-World News API (semantic search + sentiment) → NewsAPI (country mapping) → 
-NewsData.io → Multilingual Mock Data → 
-Cached Results (per language) → Client Display
-```
-
-**Language to Country Mapping:**
-- English (en): US, GB, AU, CA, IN
-- Portuguese (pt): BR, PT
-- Spanish (es): ES, MX, AR, CO
-- French (fr): FR, CA, BE
-- German (de): DE, AT, CH
+- **Data Layer**: Shared TypeScript schemas using Drizzle ORM and Zod for Users, Sessions, and NewsArticles (including geographic coordinates, userId, isUserCreated, language).
+- **Language Management**: `LanguageContext` provider, `SupportedLanguage` type, `LANGUAGES` constant with flag icons, and LocalStorage persistence. Supports English, Portuguese, Spanish, French, and German with specific country mappings for news fetching.
+- **AI Features**:
+    - **Bias Detection**: `cardiffnlp/twitter-roberta-base-bias-detection` model.
+    - **Neutral Summaries**: HuggingFace BART model (`facebook/bart-large-cnn`) for 80-word neutral summaries, presented as collapsible sections.
+    - **Sentiment Analysis**: Per-article sentiment scores (-1 to +1) from World News API, displayed as "KNEW Mood" badges with visual indicators.
+    - Background processing for AI tasks via BullMQ, with real-time updates via WebSockets.
 
 ### Deployment Strategy
-- **Development**: Vite server, language hot-reload, HMR, memory-based storage
-- **Production**: Frontend assets built with Vite, served by Express. Backend bundled with esbuild. PostgreSQL via environment variables. Replit Auth (HTTPS only). Optimized for public Replit URL.
+- Optimized for Replit public URL deployments, utilizing HTTPS-only Replit Auth. Frontend assets built with Vite, served by Express. Backend bundled with esbuild. PostgreSQL and Redis configurations via environment variables.
 
 ## External Dependencies
 
 - **Database**: Neon PostgreSQL
-- **Maps**: Leaflet.js
+- **Maps**: Leaflet.js, Nominatim API (OpenStreetMap) for reverse geocoding
 - **UI Components**: Radix UI, shadcn/ui
 - **Form Handling**: React Hook Form with Zod resolvers
 - **Date Handling**: date-fns
 - **News APIs**: World News API (primary), NewsAPI.org (fallback), NewsData.io (fallback)
-- **AI Analysis**: HuggingFace Inference API (bias detection model: cardiffnlp/twitter-roberta-base-bias-detection)
+- **AI Analysis**: HuggingFace Inference API (for bias detection and neutral summaries)
 - **Authentication**: Replit Auth (OpenID Connect)
-- **Charts**: Chart.js (ownership visualization)
-
-## TRL 7 Status
-
-### Target: System Prototype Demonstration in Operational Environment
-
-✅ **Achieved Capabilities:**
-1. Multilingual news aggregation (5 languages)
-2. Real-time language switching with UI dropdown
-3. Geographic news distribution worldwide
-4. AI-powered bias detection (free tier)
-5. Comprehensive error handling with multi-source fallback
-6. Production deployment optimization for Replit
-7. User authentication with multiple providers
-8. Database persistence with caching
-
-✅ **Free Tier Infrastructure:**
-- World News API: 100 requests/day (primary with sentiment)
-- NewsAPI.org: 100 requests/day (fallback)
-- NewsData.io: 200 requests/day (fallback)
-- HuggingFace: Free inference API
-- Replit: Free hosting + PostgreSQL database + Redis
-- **Total Cost**: $0 for demonstration
-
-### Next Steps to TRL 8+
-- Scale to 10+ languages
-- Expand to 10,000+ news sources
-- Implement real-time fact-checking
-- Add cross-platform mobile apps
-- Achieve 95% bias detection accuracy
-
-## Environment Variables
-
-### Required
-- `WORLDNEWS_API_KEY`: World News API key (primary news source with sentiment)
-- `NEWS_API_KEY`: NewsAPI.org key (fallback)
-- `NEWSDATA_API_KEY`: NewsData.io key (fallback)
-- `HUGGINGFACE_API_KEY`: HuggingFace token for bias detection
-
-### Optional
-- `VITE_STRIPE_PUBLIC_KEY`: Stripe public key (demo works without)
-- `STRIPE_SECRET_KEY`: Stripe secret key (demo works without)
-
-### Auto-Configured (Replit)
-- `DATABASE_URL`: PostgreSQL connection string
-- `SESSION_SECRET`: Secure session key
-- `REPLIT_DOMAINS`: Deployment domains
-- `REPL_ID`: Replit app identifier
-
-## Performance Optimizations
-
-- **Caching Strategy**: 5-minute TTL per language
-- **Smart Fallback**: World News API → NewsAPI → NewsData → Mock (no errors to user)
-- **Query Deduplication**: React Query prevents duplicate requests
-- **Language Isolation**: Separate cache keys per language
-- **Debounced Search**: 300ms delay for optimal UX
-- **Lazy Loading**: News Panel slides in on demand
-
-## Known Limitations
-
-- World News API free tier: 100 requests/day (falls back to NewsAPI/mock data)
-- NewsAPI free tier: 100 requests/day (falls back to mock data)
-- NewsData.io free tier: 200 requests/day (falls back to mock data)
-- HuggingFace free tier: Rate limits apply (falls back to mock analysis)
-- Sentiment scores may vary by language (some languages have more neutral sentiment)
-- Replit Auth: HTTPS required (no localhost support)
-
-## Development Notes
-
-- Always use `npm run db:push` for schema changes (never manual SQL migrations)
-- Test multilingual support by switching language dropdown
-- Check console logs for API fallback behavior
-- Verify error handling by temporarily removing API keys
-- Authentication only works on Replit domain (HTTPS), not localhost
