@@ -94,7 +94,6 @@ class GNewsService {
         const baseLng = Math.random() * 360 - 180;
         
         return {
-          id: Date.now() + index,
           title: article.title,
           summary: article.description || article.title,
           content: article.content || article.description || article.title,
@@ -114,7 +113,9 @@ class GNewsService {
           externalId: `gnews-${normalizedCountry}-${Date.now()}-${index}`,
           userId: null,
           isUserCreated: false,
-        } as NewsArticle;
+          fetchedAt: new Date(),
+          cacheExpiresAt: null,
+        } as InsertNewsArticle;
       });
 
     } catch (error) {

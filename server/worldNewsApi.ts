@@ -1,4 +1,4 @@
-import type { NewsArticle } from '@shared/schema';
+import type { NewsArticle, InsertNewsArticle } from '@shared/schema';
 
 const WORLDNEWS_API_KEY = process.env.WORLDNEWS_API_KEY || '';
 const BASE_URL = 'https://api.worldnewsapi.com';
@@ -58,7 +58,7 @@ export class WorldNewsApiService {
     radius?: number; // in kilometers
     language?: string;
     number?: number;
-  }): Promise<{ articles: NewsArticle[]; sentiment: SentimentMetrics }> {
+  }): Promise<{ articles: InsertNewsArticle[]; sentiment: SentimentMetrics }> {
     try {
       if (!this.apiKey) {
         console.warn('⚠️ WORLDNEWS_API_KEY not configured, using mock data');
@@ -120,7 +120,7 @@ export class WorldNewsApiService {
     language?: string;
     country?: string;
     number?: number;
-  }): Promise<{ articles: NewsArticle[]; sentiment: SentimentMetrics }> {
+  }): Promise<{ articles: InsertNewsArticle[]; sentiment: SentimentMetrics }> {
     try {
       if (!this.apiKey) {
         console.warn('⚠️ WORLDNEWS_API_KEY not configured, using mock data');
@@ -182,7 +182,7 @@ export class WorldNewsApiService {
     centerLat: number,
     centerLng: number,
     radiusKm: number
-  ): NewsArticle[] {
+  ): InsertNewsArticle[] {
     return worldNewsArticles.map((article, index) => {
       // Distribute articles within the radius
       const angle = (Math.random() * 360 * Math.PI) / 180;
@@ -193,7 +193,6 @@ export class WorldNewsApiService {
       const lngOffset = (distance / (111 * Math.cos((centerLat * Math.PI) / 180))) * Math.sin(angle);
       
       return {
-        id: -(Date.now() + index), // Negative IDs for ephemeral articles
         title: article.title,
         summary: article.summary || article.text?.substring(0, 200) || '',
         content: article.text || article.summary || '',
@@ -209,17 +208,18 @@ export class WorldNewsApiService {
         sourceName: this.extractSource(article.url),
         country: article.source_country || null,
         language: language,
-        externalId: null,
+        externalId: article.id?.toString() || null,
         userId: null,
         isUserCreated: false,
-        sentiment: article.sentiment
+        sentiment: article.sentiment,
+        fetchedAt: new Date(),
+        cacheExpiresAt: null,
       };
     });
   }
 
-  private convertToNewsArticles(worldNewsArticles: WorldNewsArticle[], language: string): NewsArticle[] {
+  private convertToNewsArticles(worldNewsArticles: WorldNewsArticle[], language: string): InsertNewsArticle[] {
     return worldNewsArticles.map((article, index) => ({
-      id: -(Date.now() + index), // Negative IDs for ephemeral articles
       title: article.title,
       summary: article.summary || article.text?.substring(0, 200) || '',
       content: article.text || article.summary || '',
@@ -235,10 +235,12 @@ export class WorldNewsApiService {
       sourceName: this.extractSource(article.url),
       country: article.source_country || null,
       language: language,
-      externalId: null,
+      externalId: article.id?.toString() || null,
       userId: null,
       isUserCreated: false,
-      sentiment: article.sentiment // Add sentiment score from World News API
+      sentiment: article.sentiment,
+      fetchedAt: new Date(),
+      cacheExpiresAt: null,
     }));
   }
 
@@ -360,10 +362,9 @@ export class WorldNewsApiService {
     return min + Math.random() * (max - min);
   }
 
-  private getMockNews(language: string): { articles: NewsArticle[]; sentiment: SentimentMetrics } {
-    const mockArticles: NewsArticle[] = [
+  private getMockNews(language: string): { articles: InsertNewsArticle[]; sentiment: SentimentMetrics } {
+    const mockArticles: InsertNewsArticle[] = [
       {
-        id: -(Date.now() + 1),
         title: language === 'de' ? 'Deutsche Innovation führt zu Durchbruch' : 'Global Markets Show Strong Recovery',
         summary: language === 'de' ? 'Neue Technologie revolutioniert Industrie' : 'Stock markets rally as economic indicators improve',
         content: language === 'de' ? 'Deutsche Unternehmen präsentieren bahnbrechende Technologie...' : 'Financial markets worldwide are experiencing...',
@@ -382,10 +383,11 @@ export class WorldNewsApiService {
         externalId: null,
         userId: null,
         isUserCreated: false,
-        sentiment: 0.75
+        sentiment: 0.75,
+        fetchedAt: new Date(),
+        cacheExpiresAt: null,
       },
       {
-        id: -(Date.now() + 2),
         title: language === 'de' ? 'Klimagipfel erzielt Einigung' : 'Climate Summit Reaches Agreement',
         summary: language === 'de' ? 'Internationale Gemeinschaft einigt sich auf neue Ziele' : 'World leaders commit to emission targets',
         content: language === 'de' ? 'Nach intensiven Verhandlungen...' : 'Following intense negotiations...',
@@ -404,10 +406,11 @@ export class WorldNewsApiService {
         externalId: null,
         userId: null,
         isUserCreated: false,
-        sentiment: 0.45
+        sentiment: 0.45,
+        fetchedAt: new Date(),
+        cacheExpiresAt: null,
       },
       {
-        id: -(Date.now() + 3),
         title: language === 'de' ? 'Technologie-Sektor wächst weiter' : 'Tech Sector Continues Growth',
         summary: language === 'de' ? 'Starke Quartalszahlen übertreffen Erwartungen' : 'Strong quarterly results exceed expectations',
         content: language === 'de' ? 'Der Technologiesektor zeigt...' : 'The technology sector demonstrates...',
@@ -426,10 +429,11 @@ export class WorldNewsApiService {
         externalId: null,
         userId: null,
         isUserCreated: false,
-        sentiment: 0.60
+        sentiment: 0.60,
+        fetchedAt: new Date(),
+        cacheExpiresAt: null,
       },
       {
-        id: -(Date.now() + 4),
         title: language === 'de' ? 'Gesundheitswesen vor Herausforderungen' : 'Healthcare Faces Challenges',
         summary: language === 'de' ? 'Experten diskutieren Zukunft der Versorgung' : 'Experts discuss future of care delivery',
         content: language === 'de' ? 'Das Gesundheitssystem...' : 'The healthcare system...',
@@ -448,10 +452,11 @@ export class WorldNewsApiService {
         externalId: null,
         userId: null,
         isUserCreated: false,
-        sentiment: -0.20
+        sentiment: -0.20,
+        fetchedAt: new Date(),
+        cacheExpiresAt: null,
       },
       {
-        id: -(Date.now() + 5),
         title: language === 'de' ? 'Sportliche Erfolge feiern' : 'Athletic Achievements Celebrated',
         summary: language === 'de' ? 'Nationale Teams zeigen starke Leistungen' : 'National teams show strong performances',
         content: language === 'de' ? 'Sportler erreichen...' : 'Athletes achieve...',
