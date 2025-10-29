@@ -84,9 +84,9 @@ export default function MapPage() {
         return;
       }
 
-      // Step 2: Fetch news for the country
+      // Step 2: Fetch location-based news (lat/lng + country + language)
       console.log(`📰 Fetching news for ${geocodeData.country}...`);
-      const newsResponse = await fetch(`/api/news/location?country=${geocodeData.country_code}&language=${language}`);
+      const newsResponse = await fetch(`/api/news/location?lat=${lat}&lng=${lng}&country=${geocodeData.country_code}&language=${language}`);
       
       if (!newsResponse.ok) {
         console.error('Failed to fetch country news:', newsResponse.statusText);

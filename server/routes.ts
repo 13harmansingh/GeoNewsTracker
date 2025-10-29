@@ -373,55 +373,139 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }));
   }
 
-  // Get news articles by location (country-specific with robust fallback chain)
+  // Get news articles by location (lat/lng-based with language filtering + robust fallback chain)
   app.get("/api/news/location", async (req, res) => {
     try {
-      const { country } = req.query;
+      const { lat, lng, country } = req.query;
       const language = (req.query.language as string) || "en";
       const supportedLanguage = ["en", "pt", "es", "fr", "de"].includes(language) ? language as any : "en";
 
-      if (!country || typeof country !== 'string') {
-        return res.status(400).json({ message: "Country code required (e.g., IN, US, GB)" });
-      }
+      // Validate latitude and longitude
+      const latitude = lat ? parseFloat(lat as string) : null;
+      const longitude = lng ? parseFloat(lng as string) : null;
 
-      console.log(`🌍 Pulling feeds in ${supportedLanguage.toUpperCase()} for ${country.toUpperCase()}...`);
+      console.log(`📍 Location request: lat=${latitude}, lng=${longitude}, country=${country}, lang=${supportedLanguage}`);
 
-      // PRIMARY: NewsAPI.org (most reliable, free tier generous)
-      try {
-        const articles = await newsAPIService.getCountryNews(country, supportedLanguage);
-        if (articles && articles.length > 0) {
-          console.log(`✅ PRIMARY SUCCESS: NewsAPI.org returned ${articles.length} articles`);
-          return res.json(articles);
+      // PRIMARY: World News API with location-filter (lat/lng + radius) - ONLY TRUE LOCATION-BASED API
+      if (latitude !== null && longitude !== null && !isNaN(latitude) && !isNaN(longitude)) {
+        try {
+          const result = await worldNewsApi.searchNewsByLocation({
+            latitude,
+            longitude,
+            radius: 100, // 100km radius
+            language: supportedLanguage,
+            number: 20
+          });
+
+          if (result.articles && result.articles.length > 0) {
+            console.log(`✅ PRIMARY SUCCESS: World News API location-filter returned ${result.articles.length} articles`);
+            
+            // Save articles to database FIRST to avoid foreign key errors
+            for (const article of result.articles) {
+              try {
+                await storage.createNewsArticle(article);
+              } catch (dbError) {
+                // Ignore duplicate errors
+                if (!(dbError instanceof Error) || !dbError.message.includes('duplicate')) {
+                  console.warn(`Failed to save article to DB:`, dbError);
+                }
+              }
+            }
+            
+            return res.json(result.articles);
+          }
+        } catch (worldNewsError) {
+          console.warn(`⚠️ PRIMARY FAILED: World News API location-filter - ${worldNewsError}`);
         }
-      } catch (newsApiError) {
-        console.warn(`⚠️ PRIMARY FAILED: NewsAPI.org - ${newsApiError}`);
       }
 
-      // FALLBACK 1: GNews.io
-      try {
-        const articles = await gNewsService.getCountryNews(country, supportedLanguage);
-        if (articles && articles.length > 0) {
-          console.log(`✅ FALLBACK 1 SUCCESS: GNews.io returned ${articles.length} articles`);
-          return res.json(articles);
+      // FALLBACK 1: NewsAPI.org (country-based, no true location filtering)
+      if (country && typeof country === 'string') {
+        try {
+          const articles = await newsAPIService.getCountryNews(country, supportedLanguage);
+          if (articles && articles.length > 0) {
+            console.log(`✅ FALLBACK 1 SUCCESS: NewsAPI.org (country-based) returned ${articles.length} articles`);
+            
+            // Save to database
+            for (const article of articles) {
+              try {
+                await storage.createNewsArticle(article);
+              } catch (dbError) {
+                if (!(dbError instanceof Error) || !dbError.message.includes('duplicate')) {
+                  console.warn(`Failed to save article to DB:`, dbError);
+                }
+              }
+            }
+            
+            return res.json(articles);
+          }
+        } catch (newsApiError) {
+          console.warn(`⚠️ FALLBACK 1 FAILED: NewsAPI.org - ${newsApiError}`);
         }
-      } catch (gNewsError) {
-        console.warn(`⚠️ FALLBACK 1 FAILED: GNews.io - ${gNewsError}`);
       }
 
-      // FALLBACK 2: NewsData.io
+      // FALLBACK 2: GNews.io (country-based)
+      if (country && typeof country === 'string') {
+        try {
+          const articles = await gNewsService.getCountryNews(country, supportedLanguage);
+          if (articles && articles.length > 0) {
+            console.log(`✅ FALLBACK 2 SUCCESS: GNews.io returned ${articles.length} articles`);
+            
+            // Save to database
+            for (const article of articles) {
+              try {
+                await storage.createNewsArticle(article);
+              } catch (dbError) {
+                if (!(dbError instanceof Error) || !dbError.message.includes('duplicate')) {
+                  console.warn(`Failed to save article to DB:`, dbError);
+                }
+              }
+            }
+            
+            return res.json(articles);
+          }
+        } catch (gNewsError) {
+          console.warn(`⚠️ FALLBACK 2 FAILED: GNews.io - ${gNewsError}`);
+        }
+      }
+
+      // FALLBACK 3: NewsData.io (worldwide)
       try {
         const articles = await newsService.fetchWorldwideNews();
         if (articles && articles.length > 0) {
-          console.log(`✅ FALLBACK 2 SUCCESS: NewsData.io returned ${articles.length} articles`);
+          console.log(`✅ FALLBACK 3 SUCCESS: NewsData.io returned ${articles.length} articles`);
+          
+          // Save to database
+          for (const article of articles.slice(0, 20)) {
+            try {
+              await storage.createNewsArticle(article);
+            } catch (dbError) {
+              if (!(dbError instanceof Error) || !dbError.message.includes('duplicate')) {
+                console.warn(`Failed to save article to DB:`, dbError);
+              }
+            }
+          }
+          
           return res.json(articles.slice(0, 20));
         }
       } catch (newsDataError) {
-        console.warn(`⚠️ FALLBACK 2 FAILED: NewsData.io - ${newsDataError}`);
+        console.warn(`⚠️ FALLBACK 3 FAILED: NewsData.io - ${newsDataError}`);
       }
 
       // FINAL FALLBACK: 5 bias-tagged mock articles (EIC demo survives!)
       console.log(`🎭 ALL APIs FAILED - Using bias-tagged mock data for demo`);
-      const mockArticles = createBiasTaggedMockArticles(country, supportedLanguage);
+      const fallbackCountry = typeof country === 'string' ? country : 'US';
+      const mockArticles = createBiasTaggedMockArticles(fallbackCountry, supportedLanguage);
+      
+      // Save mock articles to database
+      for (const article of mockArticles) {
+        try {
+          await storage.createNewsArticle(article);
+        } catch (dbError) {
+          // Ignore errors for mock data
+        }
+      }
+      
       res.json(mockArticles);
 
     } catch (error) {
@@ -429,8 +513,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Even if everything fails, return mock data so demo doesn't break
       const fallbackCountry = typeof country === 'string' ? country : 'US';
-      const fallbackLanguage = typeof language === 'string' ? language : 'en';
-      const mockArticles = createBiasTaggedMockArticles(fallbackCountry, fallbackLanguage);
+      const language = req.query.language as string || 'en';
+      const supportedLanguage = ["en", "pt", "es", "fr", "de"].includes(language) ? language as any : "en";
+      const mockArticles = createBiasTaggedMockArticles(fallbackCountry, supportedLanguage);
       res.json(mockArticles);
     }
   });

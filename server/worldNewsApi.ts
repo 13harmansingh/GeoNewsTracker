@@ -52,6 +52,69 @@ export class WorldNewsApiService {
     this.apiKey = apiKey || WORLDNEWS_API_KEY;
   }
 
+  async searchNewsByLocation(params: {
+    latitude: number;
+    longitude: number;
+    radius?: number; // in kilometers
+    language?: string;
+    number?: number;
+  }): Promise<{ articles: NewsArticle[]; sentiment: SentimentMetrics }> {
+    try {
+      if (!this.apiKey) {
+        console.warn('⚠️ WORLDNEWS_API_KEY not configured, using mock data');
+        return this.getMockNews(params.language || 'en');
+      }
+
+      const radius = params.radius || 50; // Default 50km radius
+      const language = params.language || 'en';
+      
+      const queryParams = new URLSearchParams({
+        'api-key': this.apiKey,
+        'location-filter': `${params.latitude},${params.longitude},${radius}`,
+        language: language,
+        number: String(params.number || 20),
+        sort: 'publish-time',
+        'sort-direction': 'DESC'
+      });
+
+      const url = `${BASE_URL}/search-news?${queryParams.toString()}`;
+      console.log(`📍 Fetching location-based news (${params.latitude.toFixed(4)}, ${params.longitude.toFixed(4)}, ${radius}km) in ${language.toUpperCase()}`);
+
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        if (response.status === 402) {
+          console.warn('⚠️ World News API credit limit reached');
+        }
+        throw new Error(`World News API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data: WorldNewsResponse = await response.json();
+
+      if (!data.news || data.news.length === 0) {
+        console.log(`ℹ️ No location-specific news found, falling back to country-based search`);
+        throw new Error('No location-specific articles found');
+      }
+
+      // Convert to NewsArticle format with actual coordinates
+      const articles = this.convertToNewsArticlesWithLocation(
+        data.news, 
+        language,
+        params.latitude,
+        params.longitude,
+        radius
+      );
+      const sentiment = this.calculateSentiment(data.news);
+
+      console.log(`✅ World News API returned ${articles.length} location-based articles`);
+
+      return { articles, sentiment };
+    } catch (error: any) {
+      console.error('❌ World News API location search error:', error.message);
+      throw error; // Propagate to allow fallback chain
+    }
+  }
+
   async searchNews(params: {
     text?: string;
     language?: string;
@@ -111,6 +174,47 @@ export class WorldNewsApiService {
       console.log('📦 Falling back to mock data');
       return this.getMockNews(params.language || 'en');
     }
+  }
+
+  private convertToNewsArticlesWithLocation(
+    worldNewsArticles: WorldNewsArticle[], 
+    language: string,
+    centerLat: number,
+    centerLng: number,
+    radiusKm: number
+  ): NewsArticle[] {
+    return worldNewsArticles.map((article, index) => {
+      // Distribute articles within the radius
+      const angle = (Math.random() * 360 * Math.PI) / 180;
+      const distance = Math.random() * radiusKm;
+      
+      // Convert km to degrees (approximate)
+      const latOffset = (distance / 111) * Math.cos(angle);
+      const lngOffset = (distance / (111 * Math.cos((centerLat * Math.PI) / 180))) * Math.sin(angle);
+      
+      return {
+        id: -(Date.now() + index), // Negative IDs for ephemeral articles
+        title: article.title,
+        summary: article.summary || article.text?.substring(0, 200) || '',
+        content: article.text || article.summary || '',
+        category: this.determineCategory(article.title),
+        latitude: centerLat + latOffset,
+        longitude: centerLng + lngOffset,
+        imageUrl: article.image || null,
+        isBreaking: false,
+        views: 0,
+        publishedAt: new Date(article.publish_date),
+        location: this.getLocationName(language),
+        sourceUrl: article.url,
+        sourceName: this.extractSource(article.url),
+        country: article.source_country || null,
+        language: language,
+        externalId: null,
+        userId: null,
+        isUserCreated: false,
+        sentiment: article.sentiment
+      };
+    });
   }
 
   private convertToNewsArticles(worldNewsArticles: WorldNewsArticle[], language: string): NewsArticle[] {
