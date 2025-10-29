@@ -1,6 +1,7 @@
 import { Queue, Worker, Job } from 'bullmq';
 import { biasDetectionService } from './biasDetectionService';
 import { biasWebSocketServer } from './websocket';
+import { storage } from './storage';
 
 interface BiasJobData {
   text: string;
@@ -47,6 +48,20 @@ class BiasJobQueue {
           async (job: Job<BiasJobData, BiasJobResult>) => {
             const startTime = Date.now();
             console.log(`⚡ Processing bias job ${job.id} for: "${job.data.text.substring(0, 50)}..."`);
+            
+            // CACHE CHECK: If articleId provided, check if bias analysis already exists
+            if (job.data.articleId) {
+              const existing = await storage.getBiasAnalysis(job.data.articleId);
+              if (existing && existing.aiSummary) {
+                console.log(`✅ CACHE HIT: Reusing saved AI analysis for article ${job.data.articleId}`);
+                return {
+                  prediction: (existing.aiPrediction || 'center') as 'left' | 'center' | 'right',
+                  confidence: existing.aiConfidence || 0.5,
+                  summary: existing.aiSummary
+                };
+              }
+              console.log(`❌ CACHE MISS: No saved AI analysis, calling HuggingFace...`);
+            }
             
             // Process bias detection and summary in parallel for better performance
             const [result, summary] = await Promise.all([
@@ -141,14 +156,38 @@ class BiasJobQueue {
       this.inMemoryJobs.set(jobId, { status: 'processing' });
 
       try {
-        const result = await biasDetectionService.detectBias(data.text);
-        const summary = await biasDetectionService.generateNeutralSummary(data.text, 80);
-
-        const jobResult: BiasJobResult = {
-          prediction: result.prediction,
-          confidence: result.confidence,
-          summary
-        };
+        let jobResult: BiasJobResult;
+        
+        // CACHE CHECK: If articleId provided, check if bias analysis already exists
+        if (data.articleId) {
+          const existing = await storage.getBiasAnalysis(data.articleId);
+          if (existing && existing.aiSummary) {
+            console.log(`✅ CACHE HIT: Reusing saved AI analysis for article ${data.articleId}`);
+            jobResult = {
+              prediction: (existing.aiPrediction || 'center') as 'left' | 'center' | 'right',
+              confidence: existing.aiConfidence || 0.5,
+              summary: existing.aiSummary
+            };
+          } else {
+            console.log(`❌ CACHE MISS: No saved AI analysis, calling HuggingFace...`);
+            const result = await biasDetectionService.detectBias(data.text);
+            const summary = await biasDetectionService.generateNeutralSummary(data.text, 80);
+            jobResult = {
+              prediction: result.prediction,
+              confidence: result.confidence,
+              summary
+            };
+          }
+        } else {
+          // No articleId, just run the AI
+          const result = await biasDetectionService.detectBias(data.text);
+          const summary = await biasDetectionService.generateNeutralSummary(data.text, 80);
+          jobResult = {
+            prediction: result.prediction,
+            confidence: result.confidence,
+            summary
+          };
+        }
 
         this.inMemoryJobs.set(jobId, { status: 'completed', result: jobResult });
         
