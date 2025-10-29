@@ -349,7 +349,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const mockData = mockDataByLanguage[supportedLang] || mockDataByLanguage.en;
     
     return mockData.map((item, index) => ({
-      id: Date.now() + index,
       title: item.title,
       summary: item.summary,
       content: item.summary,
@@ -366,11 +365,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       country: countryCode,
       language: supportedLang,
       sentiment: null,
-      biasLabel: item.bias,
       externalId: `mock-bias-${countryCode}-${index}`,
       userId: null,
       isUserCreated: false,
-    }));
+      fetchedAt: new Date(),
+      cacheExpiresAt: null,
+    } as InsertNewsArticle));
   }
 
   // Get news articles by location (lat/lng-based with language filtering + robust fallback chain)

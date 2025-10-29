@@ -277,7 +277,6 @@ class NewsAPIService {
     return filteredLocations.map((location, index) => {
       const randomOffset = 0.5;
       return {
-        id: Date.now() + index,
         title: mockTitles[index] || mockTitles[0],
         summary: `Latest news from ${location.name}: ${mockTitles[index] || mockTitles[0]}`,
         content: `This is breaking news from ${location.name} in ${location.region}.`,
@@ -299,7 +298,7 @@ class NewsAPIService {
         isUserCreated: false,
         fetchedAt: new Date(),
         cacheExpiresAt: null,
-      };
+      } as InsertNewsArticle;
     });
   }
 
@@ -399,7 +398,6 @@ class NewsAPIService {
     const titles = mockTitles[countryCode] || mockTitles["us"];
 
     return titles.map((title, index) => ({
-      id: Date.now() + index,
       title,
       summary: `Top news from ${countryInfo.name}: ${title}`,
       content: `This is a sample article about ${title.toLowerCase()}.`,
@@ -421,7 +419,7 @@ class NewsAPIService {
       isUserCreated: false,
       fetchedAt: new Date(),
       cacheExpiresAt: null,
-    }));
+    } as InsertNewsArticle));
   }
 
   // Fetch country-specific news with language detection
@@ -534,7 +532,6 @@ class NewsAPIService {
     const titles = mockTitlesByLanguage[language] || mockTitlesByLanguage.en;
 
     return titles.map((title, index) => ({
-      id: Date.now() + index,
       title,
       summary: `${title} - Latest news from ${countryCode.toUpperCase()}`,
       content: `Mock news article: ${title}`,
@@ -556,7 +553,7 @@ class NewsAPIService {
       isUserCreated: false,
       fetchedAt: new Date(),
       cacheExpiresAt: null,
-    }));
+    } as InsertNewsArticle));
   }
 }
 

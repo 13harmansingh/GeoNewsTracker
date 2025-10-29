@@ -272,7 +272,6 @@ class NewsService {
         const categoryInfo = this.mapCategory(article.category);
 
         return {
-          id: index + 1,
           title: article.title,
           summary: article.description || article.title,
           content: article.content || article.description || article.title,
@@ -289,7 +288,12 @@ class NewsService {
           country: article.country?.[0] || null,
           language: article.language,
           externalId: article.article_id,
-        } as NewsArticle;
+          sentiment: null,
+          userId: null,
+          isUserCreated: false,
+          fetchedAt: new Date(),
+          cacheExpiresAt: null,
+        } as InsertNewsArticle;
       });
 
     } catch (error) {
@@ -418,7 +422,6 @@ export async function searchNews(query: string): Promise<NewsArticle[]> {
         }
 
         return {
-          id: Date.now() + index,
           title: article.title,
           summary: article.description || 'No summary available',
           location: getLocationName(article.country?.[0] || 'Unknown'),
@@ -428,7 +431,18 @@ export async function searchNews(query: string): Promise<NewsArticle[]> {
           publishedAt: new Date(article.pubDate),
           sourceUrl: article.link,
           isBreaking: category === 'BREAKING',
-          views: Math.floor(Math.random() * 1000) + 100
+          views: Math.floor(Math.random() * 1000) + 100,
+          content: article.content || article.description || 'No content available',
+          imageUrl: article.image_url || null,
+          sourceName: article.source_name || 'Unknown',
+          country: article.country?.[0] || null,
+          language: 'en',
+          externalId: article.article_id,
+          sentiment: null,
+          userId: null,
+          isUserCreated: false,
+          fetchedAt: new Date(),
+          cacheExpiresAt: null,
         };
       });
 
