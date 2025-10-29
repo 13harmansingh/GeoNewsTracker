@@ -292,6 +292,7 @@ export default function MapPage() {
         center={mapCenter}
         zoom={mapZoom}
         isLoading={isLoading || isReverseGeocoding}
+        language={language}
         onAreaClick={handleAreaClick}
         zoneData={zoneData}
         onZoneClick={handleZoneClick}

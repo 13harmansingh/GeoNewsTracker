@@ -34,6 +34,7 @@ interface InteractiveMapProps {
   center: number[];
   zoom: number;
   isLoading: boolean;
+  language: string;
   onAreaClick?: (lat: number, lng: number) => void;
   zoneData?: ZoneData | null;
   onZoneClick?: () => void;
@@ -57,6 +58,7 @@ export default function InteractiveMap({
   center, 
   zoom,
   isLoading,
+  language,
   onAreaClick,
   zoneData,
   onZoneClick
@@ -208,7 +210,7 @@ export default function InteractiveMap({
         <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50">
           <div className="glass-morphism rounded-2xl p-6">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-ios-blue mx-auto mb-4"></div>
-            <p className="text-sm text-gray-600">Loading news...</p>
+            <p className="text-sm text-gray-600" data-testid="loading-feeds">Pulling feeds in {language.toUpperCase()}...</p>
           </div>
         </div>
       )}
