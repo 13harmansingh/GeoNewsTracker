@@ -21,11 +21,10 @@ function Router() {
     );
   }
 
-  // Authentication is optional - map is accessible to everyone
+  // Map is directly accessible without authentication
   return (
     <Switch>
-      <Route path="/" component={Landing} />
-      <Route path="/map" component={MapPage} />
+      <Route path="/" component={MapPage} />
       <Route component={NotFound} />
     </Switch>
   );
