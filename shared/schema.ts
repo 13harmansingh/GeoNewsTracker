@@ -112,7 +112,8 @@ export const eventHistory = pgTable("event_history", {
 export const insertNewsArticleSchema = createInsertSchema(newsArticles).omit({
   id: true,
   views: true,
-  publishedAt: true,
+}).extend({
+  publishedAt: z.date().optional(), // Allow APIs to provide real publish date, defaults to NOW() if omitted
 });
 
 export const insertProSubscriptionSchema = createInsertSchema(proSubscriptions).omit({

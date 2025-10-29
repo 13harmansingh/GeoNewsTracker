@@ -201,7 +201,6 @@ export class WorldNewsApiService {
         longitude: centerLng + lngOffset,
         imageUrl: article.image || null,
         isBreaking: false,
-
         publishedAt: new Date(article.publish_date),
         location: this.getLocationName(language),
         sourceUrl: article.url,
@@ -228,8 +227,6 @@ export class WorldNewsApiService {
       longitude: this.getRandomLongitude(language),
       imageUrl: article.image || null,
       isBreaking: false,
-      views: 0,
-      publishedAt: new Date(article.publish_date),
       location: this.getLocationName(language),
       sourceUrl: article.url,
       sourceName: this.extractSource(article.url),
@@ -373,7 +370,7 @@ export class WorldNewsApiService {
         longitude: this.getRandomLongitude(language),
         imageUrl: null,
         isBreaking: false,
-        publishedAt: new Date(),
+        publishedAt: new Date(article.publish_date),
         location: this.getLocationName(language),
         sourceUrl: 'https://example.com/mock-1',
         sourceName: language === 'de' ? 'Deutsche Welle' : 'BBC',
@@ -395,7 +392,7 @@ export class WorldNewsApiService {
         longitude: this.getRandomLongitude(language),
         imageUrl: null,
         isBreaking: false,
-        publishedAt: new Date(),
+        publishedAt: new Date(article.publish_date),
         location: this.getLocationName(language),
         sourceUrl: 'https://example.com/mock-2',
         sourceName: language === 'de' ? 'Süddeutsche Zeitung' : 'CNN',
@@ -417,7 +414,7 @@ export class WorldNewsApiService {
         longitude: this.getRandomLongitude(language),
         imageUrl: null,
         isBreaking: false,
-        publishedAt: new Date(),
+        publishedAt: new Date(article.publish_date),
         location: this.getLocationName(language),
         sourceUrl: 'https://example.com/mock-3',
         sourceName: language === 'de' ? 'Handelsblatt' : 'Al Jazeera',
@@ -439,7 +436,7 @@ export class WorldNewsApiService {
         longitude: this.getRandomLongitude(language),
         imageUrl: null,
         isBreaking: false,
-        publishedAt: new Date(),
+        publishedAt: new Date(article.publish_date),
         location: this.getLocationName(language),
         sourceUrl: 'https://example.com/mock-4',
         sourceName: language === 'de' ? 'FAZ' : 'Reuters',
@@ -461,7 +458,7 @@ export class WorldNewsApiService {
         longitude: this.getRandomLongitude(language),
         imageUrl: null,
         isBreaking: false,
-        publishedAt: new Date(),
+        publishedAt: new Date(article.publish_date),
         location: this.getLocationName(language),
         sourceUrl: 'https://example.com/mock-5',
         sourceName: language === 'de' ? 'Sport1' : 'BBC Sport',
@@ -470,7 +467,10 @@ export class WorldNewsApiService {
         externalId: null,
         userId: null,
         isUserCreated: false,
-        sentiment: 0.85
+        sentiment: 0.85,
+        publishedAt: new Date(), // Mock articles use current timestamp
+        fetchedAt: new Date(),
+        cacheExpiresAt: null
       }
     ];
 
@@ -480,7 +480,7 @@ export class WorldNewsApiService {
       summary: article.summary,
       url: article.sourceUrl || '',
       image: article.imageUrl || undefined,
-      publish_date: article.publishedAt?.toISOString() || new Date().toISOString(),
+      publish_date: new Date().toISOString(),
       author: undefined,
       sentiment: article.sentiment || 0,
       language: article.language || 'en'
