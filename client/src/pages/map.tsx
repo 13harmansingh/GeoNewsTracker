@@ -18,6 +18,7 @@ export default function MapPage() {
   const [mapCenter, setMapCenter] = useState([40.7589, -73.9851]); // NYC coordinates
   const [mapZoom, setMapZoom] = useState(12);
   const [locationNews, setLocationNews] = useState<NewsArticle[]>([]);
+  const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
 
   const { data: allNews = [], isLoading } = useNews.useAllNews(language);
   const { data: filteredNews = [] } = useNews.useFilteredNews(activeFilter, language);
@@ -38,18 +39,57 @@ export default function MapPage() {
   };
 
   const handleAreaClick = async (lat: number, lng: number) => {
-    console.log(`📍 Fetching news for clicked area: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+    console.log(`📍 Map clicked at: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+    setIsReverseGeocoding(true);
+    
     try {
-      const response = await fetch(`/api/news/location-fresh?lat=${lat}&lng=${lng}&language=${language}`);
-      if (response.ok) {
-        const freshNews = await response.json();
-        console.log(`✅ Fetched ${freshNews.length} fresh news articles for location`);
-        setLocationNews(prev => [...prev, ...freshNews]);
-      } else {
-        console.error('Failed to fetch location news:', response.statusText);
+      // Step 1: Reverse geocode to get country code
+      console.log('🌍 Reverse geocoding location...');
+      const geocodeResponse = await fetch(`/api/reverse-geocode?lat=${lat}&lng=${lng}`);
+      
+      if (!geocodeResponse.ok) {
+        console.error('Reverse geocoding failed:', geocodeResponse.statusText);
+        setIsReverseGeocoding(false);
+        return;
       }
+
+      const geocodeData = await geocodeResponse.json();
+      console.log(`✅ Reverse geocoded to: ${geocodeData.country} (${geocodeData.country_code})`);
+
+      if (!geocodeData.country_code) {
+        console.warn('⚠️ No country code found for this location. Click on a country.');
+        setIsReverseGeocoding(false);
+        return;
+      }
+
+      // Step 2: Fetch news for the country
+      console.log(`📰 Fetching news for ${geocodeData.country}...`);
+      const newsResponse = await fetch(`/api/news/location?country=${geocodeData.country_code}&language=${language}`);
+      
+      if (!newsResponse.ok) {
+        console.error('Failed to fetch country news:', newsResponse.statusText);
+        setIsReverseGeocoding(false);
+        return;
+      }
+
+      const countryNews = await newsResponse.json();
+      console.log(`✅ Fetched ${countryNews.length} news articles for ${geocodeData.country}`);
+
+      // Add country news to location news (avoid duplicates by checking IDs)
+      setLocationNews(prev => {
+        const existingIds = new Set(prev.map(article => article.id));
+        const newArticles = countryNews.filter((article: NewsArticle) => !existingIds.has(article.id));
+        return [...prev, ...newArticles];
+      });
+
+      // Center map on clicked location
+      setMapCenter([lat, lng]);
+      setMapZoom(6); // Zoom in to show country-level detail
+
     } catch (error) {
-      console.error('Error fetching location news:', error);
+      console.error('Error handling map click:', error);
+    } finally {
+      setIsReverseGeocoding(false);
     }
   };
 
@@ -218,7 +258,7 @@ export default function MapPage() {
         onMarkerClick={handleMarkerClick}
         center={mapCenter}
         zoom={mapZoom}
-        isLoading={isLoading}
+        isLoading={isLoading || isReverseGeocoding}
         onAreaClick={handleAreaClick}
       />
 
