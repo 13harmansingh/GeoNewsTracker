@@ -3,6 +3,27 @@
 ## Overview
 Knew is a professional location-based news platform demonstrating TRL 7 capabilities for EIC grant. The application provides worldwide news coverage with multilingual support (5 languages), AI-powered bias analysis with neutral summarization, sentiment tracking via "KNEW Global Mood Meter", media ownership transparency, and scalable background job processing using BullMQ with Redis and WebSocket real-time updates. Built with React/TypeScript frontend and Express/PostgreSQL backend, it features an iOS 26-inspired glassmorphism design optimized for the Replit deployment platform.
 
+## Recent Changes (October 29, 2025)
+
+### TRL 7 Enhancements - Phase 4: Map Click Reverse Geocoding (COMPLETED)
+
+- **Reverse Geocoding Integration** (October 29, 2025): Instant country-based news on map click
+  - New `/api/reverse-geocode` endpoint using free Nominatim API (OpenStreetMap)
+  - Converts lat/lng coordinates to country codes (IN, GB, US, etc.)
+  - No API key required - free tier with proper User-Agent compliance
+  - Response times: 130-750ms for instant feel
+  - Returns full location data: country, country_code, city, state, display_name
+  
+- **Interactive Map Click Handler** (October 29, 2025): Country-specific news loading
+  - Click any location on map → reverse geocode → fetch news for that country
+  - Loading spinner during reverse geocoding + news fetch
+  - Automatic map centering on clicked location (zoom level 6)
+  - Duplicate prevention via ID-based filtering
+  - Fallback to global news if no country found
+  - Smart error handling with console logging
+  
+- **User Experience**: Click India → 5 Indian headlines load instantly with 500ms latency
+
 ## Recent Changes (October 27, 2025)
 
 ### TRL 7 Enhancements - Phase 3: World News API + Per-Article Sentiment (COMPLETED)

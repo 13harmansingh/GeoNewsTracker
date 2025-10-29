@@ -44,6 +44,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===== REVERSE GEOCODING =====
+  
+  app.get("/api/reverse-geocode", async (req, res) => {
+    try {
+      const { lat, lng } = req.query;
+      
+      if (!lat || !lng) {
+        return res.status(400).json({ message: "Latitude and longitude required" });
+      }
+
+      const latitude = parseFloat(lat as string);
+      const longitude = parseFloat(lng as string);
+
+      if (isNaN(latitude) || isNaN(longitude)) {
+        return res.status(400).json({ message: "Invalid coordinates" });
+      }
+
+      console.log(`🌍 Reverse geocoding: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+
+      // Use free Nominatim API for reverse geocoding
+      const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=3&addressdetails=1`;
+      
+      const response = await fetch(nominatimUrl, {
+        headers: {
+          'User-Agent': 'KNEW-News-App/1.0' // Nominatim requires a user agent
+        }
+      });
+
+      if (!response.ok) {
+        console.warn(`Nominatim API error: ${response.status}`);
+        return res.status(500).json({ message: "Reverse geocoding failed" });
+      }
+
+      const data = await response.json();
+      
+      if (!data || !data.address) {
+        return res.json({ 
+          country: null, 
+          country_code: null, 
+          display_name: "Unknown location" 
+        });
+      }
+
+      const countryCode = data.address.country_code?.toUpperCase() || null;
+      const country = data.address.country || null;
+      const displayName = data.display_name || "Unknown location";
+
+      console.log(`✅ Reverse geocoded to: ${country} (${countryCode})`);
+
+      res.json({
+        country,
+        country_code: countryCode,
+        display_name: displayName,
+        city: data.address.city || data.address.town || data.address.village || null,
+        state: data.address.state || null
+      });
+
+    } catch (error) {
+      console.error("Reverse geocoding error:", error);
+      res.status(500).json({ message: "Failed to reverse geocode" });
+    }
+  });
+
+  // ===== NEWS ROUTES =====
+
   // Helper function to get diverse, categorized news
   async function fetchNewsWithFallback(language: string = "en") {
     const supportedLanguage = ["en", "pt", "es", "fr", "de"].includes(language) ? language as any : "en";
