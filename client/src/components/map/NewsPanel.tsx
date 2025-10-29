@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { X, Clock, MapPin, TrendingUp, Share, Eye } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { X, Clock, MapPin, TrendingUp, Share, Eye, ArrowLeft } from "lucide-react";
 import type { NewsArticle } from "@shared/schema";
 import { BiasAnalysisForm } from "@/components/knew/BiasAnalysisForm";
 import { OwnershipChart } from "@/components/knew/OwnershipChart";
@@ -10,15 +10,40 @@ interface NewsPanelProps {
   isVisible: boolean;
   onClose: () => void;
   relatedNews: NewsArticle[];
+  zoneArticles?: NewsArticle[];
+  zoneName?: string;
 }
 
-export default function NewsPanel({ article, isVisible, onClose, relatedNews }: NewsPanelProps) {
+export default function NewsPanel({ article, isVisible, onClose, relatedNews, zoneArticles, zoneName }: NewsPanelProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [actualContent, setActualContent] = useState(false);
+  const [showZoneList, setShowZoneList] = useState(false);
   const { isPro, openArticle } = useArticleExperience();
+  const prevVisibleRef = useRef(false);
+
+  // Track drawer open transition to show zone list only on initial open
+  useEffect(() => {
+    const isOpening = !prevVisibleRef.current && isVisible;
+    prevVisibleRef.current = isVisible;
+
+    if (!isVisible) {
+      // Reset zone list state when drawer closes
+      setShowZoneList(false);
+    } else if (isOpening && zoneArticles && zoneArticles.length > 0) {
+      // Only show zone list when drawer first opens with zone articles
+      setShowZoneList(true);
+    }
+  }, [isVisible, zoneArticles]);
 
   useEffect(() => {
     if (isVisible && article) {
+      // Skip loading if showing zone list
+      if (zoneArticles && zoneArticles.length > 0) {
+        setIsLoading(false);
+        setActualContent(true);
+        return;
+      }
+      
       setIsLoading(true);
       setActualContent(false);
       
@@ -29,7 +54,7 @@ export default function NewsPanel({ article, isVisible, onClose, relatedNews }: 
 
       return () => clearTimeout(timer);
     }
-  }, [isVisible, article]);
+  }, [isVisible, article, zoneArticles]);
 
   const formatTimeAgo = (date: Date | string | null) => {
     if (!date) return 'Unknown time';
@@ -84,12 +109,25 @@ export default function NewsPanel({ article, isVisible, onClose, relatedNews }: 
           
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">
-              {article?.category === 'BREAKING' ? 'Breaking News' : 
-               article?.category === 'LOCAL' ? 'Local Updates' :
-               article?.category === 'CIVIC' ? 'City News' :
-               article?.category === 'SPORTS' ? 'Sports News' : 'News'}
-            </h2>
+            <div className="flex items-center gap-2">
+              {/* Back to zone list button */}
+              {!showZoneList && zoneArticles && zoneArticles.length > 0 && (
+                <button
+                  onClick={() => setShowZoneList(true)}
+                  className="touch-feedback p-2 rounded-full glass-morphism hover:bg-opacity-70 transition-all"
+                  data-testid="button-back-to-list"
+                >
+                  <ArrowLeft className="w-5 h-5 text-gray-600" />
+                </button>
+              )}
+              <h2 className="text-xl font-bold text-gray-900">
+                {showZoneList && zoneName ? `News from ${zoneName}` :
+                 article?.category === 'BREAKING' ? 'Breaking News' : 
+                 article?.category === 'LOCAL' ? 'Local Updates' :
+                 article?.category === 'CIVIC' ? 'City News' :
+                 article?.category === 'SPORTS' ? 'Sports News' : 'News'}
+              </h2>
+            </div>
             <button 
               onClick={onClose}
               className="touch-feedback p-2 rounded-full glass-morphism hover:bg-opacity-70 transition-all"
@@ -110,8 +148,62 @@ export default function NewsPanel({ article, isVisible, onClose, relatedNews }: 
             </div>
           )}
 
+          {/* Zone Article List View */}
+          {showZoneList && zoneArticles && zoneArticles.length > 0 && (
+            <div className="animate-fade-in space-y-4">
+              <div className="mb-6">
+                <h3 className="text-2xl font-bold text-gray-900 mb-2" data-testid="zone-title">
+                  News from {zoneName}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  {zoneArticles.length} articles • Click to read
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {zoneArticles.map((zoneArticle) => (
+                  <div
+                    key={zoneArticle.id}
+                    onClick={() => {
+                      setShowZoneList(false);
+                      openArticle(zoneArticle);
+                    }}
+                    className="glass-morphism rounded-xl p-4 cursor-pointer hover:bg-opacity-80 transition-all touch-feedback"
+                    data-testid={`zone-article-${zoneArticle.id}`}
+                  >
+                    <div className="flex gap-3">
+                      {zoneArticle.imageUrl && (
+                        <img
+                          src={zoneArticle.imageUrl}
+                          alt={zoneArticle.title}
+                          className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`inline-block px-2 py-0.5 text-xs font-semibold rounded-full text-white ${getCategoryColor(zoneArticle.category)}`}>
+                            {zoneArticle.category}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {formatTimeAgo(zoneArticle.publishedAt)}
+                          </span>
+                        </div>
+                        <h4 className="text-sm font-semibold text-gray-900 line-clamp-2 mb-1">
+                          {zoneArticle.title}
+                        </h4>
+                        <p className="text-xs text-gray-600 line-clamp-2">
+                          {zoneArticle.summary}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Actual Content */}
-          {actualContent && article && (
+          {!showZoneList && actualContent && article && (
             <div className="animate-fade-in space-y-4">
               {/* Article Meta */}
               <div className="flex items-center justify-between mb-4">
