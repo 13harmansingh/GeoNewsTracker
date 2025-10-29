@@ -227,6 +227,7 @@ export class WorldNewsApiService {
       longitude: this.getRandomLongitude(language),
       imageUrl: article.image || null,
       isBreaking: false,
+      publishedAt: new Date(article.publish_date), // Preserve real publish timestamp from source
       location: this.getLocationName(language),
       sourceUrl: article.url,
       sourceName: this.extractSource(article.url),
