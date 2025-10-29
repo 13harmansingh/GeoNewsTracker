@@ -24,8 +24,8 @@ function Router() {
   // Authentication is optional - map is accessible to everyone
   return (
     <Switch>
-      <Route path="/" component={MapPage} />
-      <Route path="/landing" component={Landing} />
+      <Route path="/" component={Landing} />
+      <Route path="/map" component={MapPage} />
       <Route component={NotFound} />
     </Switch>
   );
