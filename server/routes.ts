@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { newsService } from "./newsService";
 import { newsAPIService } from "./newsApiService";
 import { newsOrchestrator } from "./newsOrchestrator";
+import { worldNewsApi } from "./worldNewsApi";
 import { biasDetectionService } from "./biasDetectionService";
 import { biasJobQueue } from "./biasJobQueue";
 import { biasWebSocketServer } from "./websocket";
@@ -302,54 +303,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get news articles by location  
+  // Get news articles by location (country-specific using World News API)
   app.get("/api/news/location", async (req, res) => {
     try {
-      const { lat, lng, radius, country } = req.query;
+      const { country } = req.query;
       const language = (req.query.language as string) || "en";
+      const supportedLanguage = ["en", "pt", "es", "fr", "de"].includes(language) ? language as any : "en";
 
-      let articles;
-      try {
-        if (country && typeof country === 'string') {
-          // Fetch news by country if provided
-          try {
-            articles = await newsService.getNewsByCountry(country, language);
-          } catch (newsDataError) {
-            console.warn("NewsData.io failed, trying NewsAPI.org fallback");
-            const countryCode = country.length === 2 ? country : 'us';
-            articles = await newsAPIService.getTopHeadlinesByCountry(countryCode);
-          }
-        } else {
-          // Get worldwide news and filter by location if coordinates provided
-          articles = await fetchNewsWithFallback(language);
-
-          if (lat && lng) {
-            const latitude = parseFloat(lat as string);
-            const longitude = parseFloat(lng as string);
-            const searchRadius = radius ? parseFloat(radius as string) : 5; // 5 degrees default
-
-            if (!isNaN(latitude) && !isNaN(longitude)) {
-              articles = articles.filter(article => {
-                const distance = Math.sqrt(
-                  Math.pow(article.latitude - latitude, 2) + 
-                  Math.pow(article.longitude - longitude, 2)
-                );
-                return distance <= searchRadius;
-              });
-            }
-          }
-        }
-      } catch (apiError) {
-        console.warn("All APIs failed, using local storage:", apiError);
-        const latitude = lat ? parseFloat(lat as string) : 0;
-        const longitude = lng ? parseFloat(lng as string) : 0;
-        const searchRadius = radius ? parseFloat(radius as string) : 0.01;
-
-        articles = await storage.getNewsArticlesByLocation(latitude, longitude, searchRadius, language);
+      if (!country || typeof country !== 'string') {
+        return res.status(400).json({ message: "Country code required (e.g., IN, US, GB)" });
       }
 
-      res.json(articles);
+      console.log(`🌍 Fetching news for country: ${country.toUpperCase()} in language: ${supportedLanguage}`);
+
+      // Use World News API with country filtering for proper geolocation
+      try {
+        const { articles, sentiment } = await worldNewsApi.searchNews({
+          country: country.toLowerCase(),
+          language: supportedLanguage,
+          number: 20 // Get 20 articles for heatmap
+        });
+
+        console.log(`✅ World News API returned ${articles.length} articles for ${country.toUpperCase()} with ${sentiment.positive}% positive sentiment`);
+        res.json(articles);
+      } catch (worldNewsError) {
+        console.warn(`World News API failed for ${country}, trying fallback...`);
+        
+        // Fallback to NewsAPI.org (limited country support)
+        try {
+          const countryCode = country.length === 2 ? country.toLowerCase() : 'us';
+          const fallbackArticles = await newsAPIService.getTopHeadlinesByCountry(countryCode);
+          console.log(`✅ NewsAPI.org fallback returned ${fallbackArticles.length} articles for ${country.toUpperCase()}`);
+          res.json(fallbackArticles);
+        } catch (fallbackError) {
+          console.error(`All news sources failed for country ${country}:`, fallbackError);
+          res.status(500).json({ message: `No news available for country ${country}` });
+        }
+      }
     } catch (error) {
+      console.error("Error in /api/news/location:", error);
       res.status(500).json({ message: "Failed to fetch location-based news" });
     }
   });
