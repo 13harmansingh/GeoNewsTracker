@@ -1,10 +1,17 @@
 import { useEffect, useRef } from "react";
-import { MapContainer, TileLayer, Marker, Tooltip, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Tooltip, useMap, useMapEvents, Circle } from "react-leaflet";
 import L from "leaflet";
 import { Clock } from "lucide-react";
 import type { NewsArticle } from "@shared/schema";
 import { createApplePinIcon, injectPinAnimations } from "./PinDesignSystem";
 import "leaflet/dist/leaflet.css";
+
+interface ZoneData {
+  country: string;
+  countryCode: string;
+  articles: NewsArticle[];
+  center: [number, number];
+}
 
 // Inject Apple-style pin animations on mount
 if (typeof window !== 'undefined') {
@@ -28,6 +35,8 @@ interface InteractiveMapProps {
   zoom: number;
   isLoading: boolean;
   onAreaClick?: (lat: number, lng: number) => void;
+  zoneData?: ZoneData | null;
+  onZoneClick?: () => void;
 }
 
 function MapClickHandler({ onAreaClick }: { onAreaClick?: (lat: number, lng: number) => void }) {
@@ -48,7 +57,9 @@ export default function InteractiveMap({
   center, 
   zoom,
   isLoading,
-  onAreaClick
+  onAreaClick,
+  zoneData,
+  onZoneClick
 }: InteractiveMapProps) {
   const mapRef = useRef<any>(null);
 
@@ -112,6 +123,43 @@ export default function InteractiveMap({
         />
 
         <MapClickHandler onAreaClick={onAreaClick} />
+
+        {/* Zone Overlay - visualizes clicked region */}
+        {zoneData && (
+          <Circle
+            center={zoneData.center}
+            radius={300000} // 300km radius for country-level zone
+            pathOptions={{
+              fillColor: '#007AFF',
+              fillOpacity: 0.15,
+              color: '#007AFF',
+              weight: 2,
+              opacity: 0.6
+            }}
+            eventHandlers={{
+              click: () => {
+                console.log(`🌍 Zone clicked: ${zoneData.country} (${zoneData.articles.length} articles)`);
+                if (onZoneClick) {
+                  onZoneClick();
+                }
+              }
+            }}
+          >
+            <Tooltip
+              direction="top"
+              permanent={true}
+              opacity={0.95}
+              className="custom-tooltip"
+            >
+              <div className="px-4 py-2 text-center">
+                <div className="text-sm font-bold text-gray-900">{zoneData.country}</div>
+                <div className="text-xs text-gray-600 mt-1">
+                  {zoneData.articles.length} articles • Click to browse
+                </div>
+              </div>
+            </Tooltip>
+          </Circle>
+        )}
 
         {!isLoading && news && Array.isArray(news) && news.map((article) => {
           console.log(`📍 Placing marker for "${article.title}" (${article.category}) at ${article.latitude.toFixed(4)}, ${article.longitude.toFixed(4)}`);

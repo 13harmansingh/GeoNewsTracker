@@ -10,6 +10,13 @@ import { useArticleExperience } from "@/contexts/ArticleExperienceContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { NewsArticle } from "@shared/schema";
 
+interface ZoneData {
+  country: string;
+  countryCode: string;
+  articles: NewsArticle[];
+  center: [number, number];
+}
+
 export default function MapPage() {
   const { language } = useLanguage();
   const { selectedArticle, isNewsVisible, openArticle, closeArticle } = useArticleExperience();
@@ -17,25 +24,40 @@ export default function MapPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [mapCenter, setMapCenter] = useState([40.7589, -73.9851]); // NYC coordinates
   const [mapZoom, setMapZoom] = useState(12);
-  const [locationNews, setLocationNews] = useState<NewsArticle[]>([]);
+  const [zoneData, setZoneData] = useState<ZoneData | null>(null); // Zone overlay data
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
 
   const { data: allNews = [], isLoading } = useNews.useAllNews(language);
   const { data: filteredNews = [] } = useNews.useFilteredNews(activeFilter, language);
   const { data: searchResults = [] } = useNews.useSearchNews(searchQuery, language);
 
-  // Determine which news to display based on current state
+  // Display base news, but hide markers when zone overlay is active
   const baseNews = searchQuery 
     ? (searchResults || []) 
     : activeFilter 
     ? (filteredNews || []) 
     : (allNews || []);
   
-  // Merge location-clicked news with base news
-  const displayNews = [...baseNews, ...locationNews];
+  // Hide individual markers when zone overlay exists (cleaner UX)
+  const displayNews = zoneData ? [] : baseNews;
 
   const handleMarkerClick = (article: NewsArticle) => {
     openArticle(article);
+  };
+
+  const handleZoneClick = () => {
+    if (zoneData && zoneData.articles.length > 0) {
+      console.log(`🗂️ Opening zone drawer with ${zoneData.articles.length} articles for ${zoneData.country}`);
+      // Open drawer - NewsPanel will detect zoneArticles and show list view
+      // Pass first article as placeholder (zone list will display instead)
+      openArticle(zoneData.articles[0]);
+    }
+  };
+
+  const handleCloseDrawer = () => {
+    closeArticle();
+    // Clear zone data to restore global map view
+    setZoneData(null);
   };
 
   const handleAreaClick = async (lat: number, lng: number) => {
@@ -75,16 +97,27 @@ export default function MapPage() {
       const countryNews = await newsResponse.json();
       console.log(`✅ Fetched ${countryNews.length} news articles for ${geocodeData.country}`);
 
-      // Add country news to location news (avoid duplicates by checking IDs)
-      setLocationNews(prev => {
-        const existingIds = new Set(prev.map(article => article.id));
-        const newArticles = countryNews.filter((article: NewsArticle) => !existingIds.has(article.id));
-        return [...prev, ...newArticles];
+      // Handle empty responses gracefully
+      if (!countryNews || countryNews.length === 0) {
+        console.warn(`⚠️ No news articles found for ${geocodeData.country}`);
+        setIsReverseGeocoding(false);
+        // TODO: Show user-friendly message (toast notification)
+        return;
+      }
+
+      // Create zone overlay data (no individual markers)
+      setZoneData({
+        country: geocodeData.country,
+        countryCode: geocodeData.country_code,
+        articles: countryNews,
+        center: [lat, lng]
       });
 
       // Center map on clicked location
       setMapCenter([lat, lng]);
       setMapZoom(6); // Zoom in to show country-level detail
+
+      console.log(`✨ Zone created for ${geocodeData.country} with ${countryNews.length} articles`);
 
     } catch (error) {
       console.error('Error handling map click:', error);
@@ -260,6 +293,8 @@ export default function MapPage() {
         zoom={mapZoom}
         isLoading={isLoading || isReverseGeocoding}
         onAreaClick={handleAreaClick}
+        zoneData={zoneData}
+        onZoneClick={handleZoneClick}
       />
 
       {/* Action Bar (Category Filters) */}
@@ -279,8 +314,10 @@ export default function MapPage() {
       <NewsPanel
         article={selectedArticle}
         isVisible={isNewsVisible}
-        onClose={closeArticle}
+        onClose={handleCloseDrawer}
         relatedNews={relatedNews}
+        zoneArticles={zoneData?.articles}
+        zoneName={zoneData?.country}
       />
     </div>
   );
