@@ -267,34 +267,28 @@ class NewsService {
 
       const data: NewsDataResponse = await response.json();
 
-      return data.results.map((article, index) => {
-        const coords = this.getCoordinatesForLocation(article.country, article.description, article.title);
-        const categoryInfo = this.mapCategory(article.category);
-
-        return {
-          title: article.title,
-          summary: article.description || article.title,
-          content: article.content || article.description || article.title,
-          category: categoryInfo.category,
-          latitude: coords.lat,
-          longitude: coords.lng,
-          imageUrl: article.image_url || null,
-          isBreaking: categoryInfo.isBreaking,
-          views: Math.floor(Math.random() * 1000) + 50,
-          publishedAt: new Date(article.pubDate),
-          location: coords.location,
-          sourceUrl: article.link,
-          sourceName: article.source_name,
-          country: article.country?.[0] || null,
-          language: article.language,
-          externalId: article.article_id,
-          sentiment: null,
-          userId: null,
-          isUserCreated: false,
-          fetchedAt: new Date(),
-          cacheExpiresAt: null,
-        } as InsertNewsArticle;
-      });
+      return data.results.map((article, index) => ({
+        title: article.title,
+        summary: article.description || article.title,
+        content: article.content || article.description || article.title,
+        category: this.mapCategory(article.category).category,
+        latitude: this.getCoordinatesForLocation(article.country, article.description, article.title).lat,
+        longitude: this.getCoordinatesForLocation(article.country, article.description, article.title).lng,
+        imageUrl: article.image_url || null,
+        isBreaking: this.mapCategory(article.category).isBreaking,
+        publishedAt: new Date(article.pubDate),
+        location: this.getCoordinatesForLocation(article.country, article.description, article.title).location,
+        sourceUrl: article.link,
+        sourceName: article.source_name,
+        country: article.country?.[0] || null,
+        language: article.language,
+        externalId: article.article_id,
+        sentiment: null,
+        userId: null,
+        isUserCreated: false,
+        fetchedAt: new Date(),
+        cacheExpiresAt: null,
+      }));
 
     } catch (error) {
       console.error("Error fetching news:", error);
