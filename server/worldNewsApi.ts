@@ -233,7 +233,7 @@ export class WorldNewsApiService {
       sourceName: this.extractSource(article.url),
       country: article.source_country || null,
       language: language,
-      externalId: article.id?.toString() || null,
+      externalId: `worldnews-${Date.now()}-${index}`,
       userId: null,
       isUserCreated: false,
       sentiment: article.sentiment,
@@ -361,6 +361,13 @@ export class WorldNewsApiService {
   }
 
   private getMockNews(language: string): { articles: InsertNewsArticle[]; sentiment: SentimentMetrics } {
+    // Helper function to create realistic past timestamps (1-48 hours ago)
+    const getRealisticTimestamp = (hoursAgo: number) => {
+      const date = new Date();
+      date.setHours(date.getHours() - hoursAgo);
+      return date;
+    };
+
     const mockArticles: InsertNewsArticle[] = [
       {
         title: language === 'de' ? 'Deutsche Innovation führt zu Durchbruch' : 'Global Markets Show Strong Recovery',
@@ -371,7 +378,7 @@ export class WorldNewsApiService {
         longitude: this.getRandomLongitude(language),
         imageUrl: null,
         isBreaking: false,
-        publishedAt: new Date(article.publish_date),
+        publishedAt: getRealisticTimestamp(3), // 3 hours ago
         location: this.getLocationName(language),
         sourceUrl: 'https://example.com/mock-1',
         sourceName: language === 'de' ? 'Deutsche Welle' : 'BBC',
@@ -393,7 +400,7 @@ export class WorldNewsApiService {
         longitude: this.getRandomLongitude(language),
         imageUrl: null,
         isBreaking: false,
-        publishedAt: new Date(article.publish_date),
+        publishedAt: getRealisticTimestamp(6), // 6 hours ago
         location: this.getLocationName(language),
         sourceUrl: 'https://example.com/mock-2',
         sourceName: language === 'de' ? 'Süddeutsche Zeitung' : 'CNN',
@@ -415,7 +422,7 @@ export class WorldNewsApiService {
         longitude: this.getRandomLongitude(language),
         imageUrl: null,
         isBreaking: false,
-        publishedAt: new Date(article.publish_date),
+        publishedAt: getRealisticTimestamp(12), // 12 hours ago
         location: this.getLocationName(language),
         sourceUrl: 'https://example.com/mock-3',
         sourceName: language === 'de' ? 'Handelsblatt' : 'Al Jazeera',
@@ -437,7 +444,7 @@ export class WorldNewsApiService {
         longitude: this.getRandomLongitude(language),
         imageUrl: null,
         isBreaking: false,
-        publishedAt: new Date(article.publish_date),
+        publishedAt: getRealisticTimestamp(18), // 18 hours ago
         location: this.getLocationName(language),
         sourceUrl: 'https://example.com/mock-4',
         sourceName: language === 'de' ? 'FAZ' : 'Reuters',
@@ -459,7 +466,7 @@ export class WorldNewsApiService {
         longitude: this.getRandomLongitude(language),
         imageUrl: null,
         isBreaking: false,
-        publishedAt: new Date(article.publish_date),
+        publishedAt: getRealisticTimestamp(24), // 24 hours ago
         location: this.getLocationName(language),
         sourceUrl: 'https://example.com/mock-5',
         sourceName: language === 'de' ? 'Sport1' : 'BBC Sport',
@@ -469,7 +476,6 @@ export class WorldNewsApiService {
         userId: null,
         isUserCreated: false,
         sentiment: 0.85,
-        publishedAt: new Date(), // Mock articles use current timestamp
         fetchedAt: new Date(),
         cacheExpiresAt: null
       }
