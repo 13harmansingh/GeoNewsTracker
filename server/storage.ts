@@ -17,6 +17,7 @@ export interface IStorage {
   // News methods
   getNewsArticles(language?: string): Promise<NewsArticle[]>;
   getNewsArticlesByLocation(lat: number, lng: number, radius?: number, language?: string): Promise<NewsArticle[]>;
+  getCachedArticlesByLocation(lat: number, lng: number, radius: number, language: string): Promise<NewsArticle[]>;
   getNewsArticlesByCategory(category: string, language?: string): Promise<NewsArticle[]>;
   getNewsArticle(id: number): Promise<NewsArticle | undefined>;
   createNewsArticle(article: InsertNewsArticle): Promise<NewsArticle>;
@@ -207,6 +208,11 @@ class MemStorage implements IStorage {
       articles = articles.filter(article => article.language === language);
     }
     return articles;
+  }
+
+  async getCachedArticlesByLocation(lat: number, lng: number, radius: number, language: string): Promise<NewsArticle[]> {
+    // MemStorage doesn't use cache expiry, just return empty for now
+    return [];
   }
 
   async getNewsArticlesByCategory(category: string, language?: string): Promise<NewsArticle[]> {
@@ -404,6 +410,30 @@ export class DatabaseStorage implements IStorage {
       filtered = filtered.filter(article => article.language === language);
     }
     return filtered;
+  }
+
+  async getCachedArticlesByLocation(lat: number, lng: number, radius: number, language: string): Promise<NewsArticle[]> {
+    const now = new Date();
+    const articles = await db.select().from(newsArticles);
+    
+    // Filter by location, language, and cache validity
+    return articles.filter((article: NewsArticle) => {
+      // Check cache expiry - only return non-expired cached articles
+      if (!article.cacheExpiresAt || article.cacheExpiresAt < now) {
+        return false;
+      }
+      
+      // Check language match
+      if (article.language !== language) {
+        return false;
+      }
+      
+      // Check if within radius (using simple distance formula)
+      const distance = Math.sqrt(
+        Math.pow(article.latitude - lat, 2) + Math.pow(article.longitude - lng, 2)
+      );
+      return distance <= radius;
+    });
   }
 
   async getNewsArticlesByCategory(category: string, language?: string): Promise<NewsArticle[]> {

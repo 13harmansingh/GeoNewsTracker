@@ -44,6 +44,8 @@ export const newsArticles = pgTable("news_articles", {
   userId: varchar("user_id").references(() => users.id),
   isUserCreated: boolean("is_user_created").default(false),
   sentiment: real("sentiment"), // -1 to +1 sentiment score from World News API
+  fetchedAt: timestamp("fetched_at").defaultNow(), // When article was cached from API
+  cacheExpiresAt: timestamp("cache_expires_at"), // When cache should be refreshed (TTL)
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({
