@@ -48,8 +48,8 @@ const WORLDWIDE_LOCATIONS: Array<{ lat: number; lng: number; name: string; regio
 ];
 
 const LANGUAGE_TO_COUNTRIES: Record<SupportedLanguage, string[]> = {
-  // English: Worldwide coverage across all continents
-  en: ['us', 'gb', 'au', 'ca', 'in', 'ie', 'nz', 'sg', 'za', 'ae', 'hk', 'ng', 'my', 'ph'],
+  // English: TRULY WORLDWIDE - All countries available in NewsAPI
+  en: ['ae', 'ar', 'at', 'au', 'be', 'bg', 'br', 'ca', 'ch', 'cn', 'co', 'cu', 'cz', 'de', 'eg', 'fr', 'gb', 'gr', 'hk', 'hu', 'id', 'ie', 'il', 'in', 'it', 'jp', 'kr', 'lt', 'lv', 'ma', 'mx', 'my', 'ng', 'nl', 'no', 'nz', 'ph', 'pl', 'pt', 'ro', 'rs', 'ru', 'sa', 'se', 'sg', 'si', 'sk', 'th', 'tr', 'tw', 'ua', 'us', 've', 'za'],
   pt: ['br', 'pt'],
   es: ['es', 'mx', 'ar', 'co'],
   fr: ['fr', 'ca', 'be'],
@@ -71,7 +71,7 @@ const COUNTRY_TO_LANGUAGE: Record<string, SupportedLanguage> = {
 
 // Map languages to appropriate geographic regions for news distribution
 const LANGUAGE_TO_REGIONS: Record<SupportedLanguage, string[]> = {
-  en: ['North America', 'Europe', 'Asia', 'Australia', 'Africa', 'Middle East'],
+  en: ['North America', 'Europe', 'Asia', 'Australia', 'Africa', 'Middle East', 'South America'], // WORLDWIDE - All regions
   pt: ['South America', 'Europe'],
   es: ['South America', 'Europe', 'North America'],
   fr: ['Europe', 'North America', 'Africa'],
