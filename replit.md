@@ -38,6 +38,13 @@ Preferred communication style: Simple, everyday language.
 ### Deployment Strategy
 - Optimized for Replit public URL deployments, utilizing HTTPS-only Replit Auth. Frontend assets built with Vite, served by Express. Backend bundled with esbuild. PostgreSQL and Redis configurations via environment variables.
 
+## Recent Changes (October 29, 2025)
+- **Expanded English to 54 countries worldwide**: NewsAPI.org now fetches from ALL supported countries (ae, ar, at, au, be, bg, br, ca, ch, cn, co, cu, cz, de, eg, fr, gb, gr, hk, hu, id, ie, il, in, it, jp, kr, lt, lv, ma, mx, my, ng, nl, no, nz, ph, pl, pt, ro, rs, ru, sa, se, sg, si, sk, th, tr, tw, ua, us, ve, za) covering all 7 continents
+- **Fixed data integrity**: All news articles now preserve real `publishedAt` timestamps from source APIs (not defaulting to NOW())
+- **Fixed router**: Added `/map` route so map page is accessible at correct URL
+- **Created comprehensive blueprint**: `KNEW_APPLICATION_BLUEPRINT.md` documents complete architecture, API endpoints, data flows, and TRL 7 readiness
+- **Schema improvement**: Made `publishedAt` optional in `insertNewsArticleSchema` to allow APIs to provide real publish dates while maintaining backward compatibility
+
 ## External Dependencies
 
 - **Database**: Neon PostgreSQL
@@ -45,6 +52,6 @@ Preferred communication style: Simple, everyday language.
 - **UI Components**: Radix UI, shadcn/ui
 - **Form Handling**: React Hook Form with Zod resolvers
 - **Date Handling**: date-fns
-- **News APIs**: World News API with location-filter (primary: true lat/lng + radius filtering), NewsAPI.org (fallback 1: country-based), GNews.io (fallback 2: country-based), NewsData.io (fallback 3: worldwide), bias-tagged mock data (final fallback ensures demo never breaks)
+- **News APIs**: World News API with location-filter (primary: true lat/lng + radius filtering), NewsAPI.org (fallback 1: **54 countries for English** - TRUE worldwide coverage across all continents), GNews.io (fallback 2: country-based), NewsData.io (fallback 3: worldwide), bias-tagged mock data (final fallback ensures demo never breaks)
 - **AI Analysis**: HuggingFace Inference API (for bias detection and neutral summaries)
 - **Authentication**: Replit Auth (OpenID Connect)
