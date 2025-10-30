@@ -21,7 +21,8 @@ Preferred communication style: Simple, everyday language.
 - **Runtime**: Node.js with ES modules
 - **Database**: PostgreSQL with Drizzle ORM, hosted on Neon Database
 - **Authentication**: Replit Auth with OpenID Connect (Passport.js), PostgreSQL-backed sessions
-- **News Orchestration**: True location-based news with 4-tier fallback chain: **World News API with location-filter** (primary: lat/lng + 100km radius + language) → NewsAPI.org (fallback 1: country+language) → GNews.io (fallback 2: country+language) → NewsData.io (fallback 3: worldwide) → Bias-tagged mock articles (final fallback). All tiers ensure schema compliance with sentiment field. Supports Nominatim reverse geocoding (lat/lng → country code). Articles saved to database BEFORE bias analyses to prevent foreign key errors.
+- **News Orchestration**: Smart 3-tier fallback with quota management: **World News API** (primary: first 50 calls/day with lat/lng + radius filtering) → **NewsAPI.org** (fallback 1: 54 countries for English, language-aware) → **NewsData.io** (fallback 2: 206 countries, all 5 languages). All tiers ensure schema compliance with sentiment field. Supports Nominatim reverse geocoding (lat/lng → country code). Articles saved to database BEFORE bias analyses to prevent foreign key errors.
+- **Quota Management**: QuotaManager class tracks World News API daily quota (50 calls/day) in Redis with automatic midnight UTC reset. Intelligently skips to fallback tiers when quota exhausted.
 - **Background Jobs**: BullMQ + Redis for async bias detection and summary generation (concurrency=50, 100 jobs/sec rate limit, automatic retry, exponential backoff).
 - **Caching**: Redis layer with 5-minute TTL for news articles and AI results, using language-specific cache keys.
 - **Real-Time**: WebSocket server at `/ws/bias-updates` for live job status notifications (queued, completed, failed).
@@ -38,7 +39,8 @@ Preferred communication style: Simple, everyday language.
 ### Deployment Strategy
 - Optimized for Replit public URL deployments, utilizing HTTPS-only Replit Auth. Frontend assets built with Vite, served by Express. Backend bundled with esbuild. PostgreSQL and Redis configurations via environment variables.
 
-## Recent Changes (October 29, 2025)
+## Recent Changes (October 30, 2025)
+- **Implemented smart quota management**: QuotaManager automatically tracks World News API usage (50 calls/day limit), resets at midnight UTC, and seamlessly falls back to NewsAPI.org → NewsData.io when quota exhausted
 - **Fixed seamless API fallback chain**: newsOrchestrator now properly passes language parameter through full fallback: World News API → NewsAPI.org → NewsData.io, ensuring all 5 languages work at every tier
 - **Added mobile search button**: Search bar now shows blue arrow button for submitting searches (previously only had clear X button)
 - **Expanded English to 54 countries worldwide**: NewsAPI.org now fetches from ALL supported countries (ae, ar, at, au, be, bg, br, ca, ch, cn, co, cu, cz, de, eg, fr, gb, gr, hk, hu, id, ie, il, in, it, jp, kr, lt, lv, ma, mx, my, ng, nl, no, nz, ph, pl, pt, ro, rs, ru, sa, se, sg, si, sk, th, tr, tw, ua, us, ve, za) covering all 7 continents
@@ -54,6 +56,6 @@ Preferred communication style: Simple, everyday language.
 - **UI Components**: Radix UI, shadcn/ui
 - **Form Handling**: React Hook Form with Zod resolvers
 - **Date Handling**: date-fns
-- **News APIs**: World News API with location-filter (primary: true lat/lng + radius filtering), NewsAPI.org (fallback 1: **54 countries for English** - TRUE worldwide coverage across all continents), GNews.io (fallback 2: country-based), NewsData.io (fallback 3: worldwide), bias-tagged mock data (final fallback ensures demo never breaks)
+- **News APIs**: World News API with location-filter (primary: first 50 calls/day with true lat/lng + radius filtering), NewsAPI.org (fallback 1: **54 countries for English** - TRUE worldwide coverage across all continents), NewsData.io (fallback 2: 206 countries, all 5 languages)
 - **AI Analysis**: HuggingFace Inference API (for bias detection and neutral summaries)
 - **Authentication**: Replit Auth (OpenID Connect)
