@@ -1,7 +1,6 @@
 import type { NewsArticle } from "@shared/schema";
 import { newsAPIService, type SupportedLanguage } from "./newsApiService";
 import { newsService } from "./newsService";
-import { redisCache, CacheKeys } from "./redisCache";
 import { worldNewsApi, type SentimentMetrics } from "./worldNewsApi";
 import { quotaManager } from "./quotaManager";
 
@@ -30,19 +29,9 @@ class NewsOrchestrator {
 
   // Get sentiment metrics for a language (KNEW Global Mood Meter)
   async getSentimentMetrics(language: SupportedLanguage = "en"): Promise<SentimentMetrics> {
-    const sentimentKey = `sentiment:${language}`;
-    
-    // Try Redis cache first
-    const cachedSentiment = await redisCache.get<SentimentMetrics>(sentimentKey);
-    if (cachedSentiment) {
-      console.log(`✅ Using cached sentiment metrics for ${language}: ${cachedSentiment.positive}% positive`);
-      return cachedSentiment;
-    }
-
     // If no cache, fetch fresh news which will populate sentiment
     try {
       const { sentiment } = await worldNewsApi.searchNews({ language, number: 20 });
-      await redisCache.set(sentimentKey, sentiment, 300);
       return sentiment;
     } catch (error) {
       console.error('Failed to fetch sentiment:', error);
@@ -97,19 +86,10 @@ class NewsOrchestrator {
 
   // Fetch diverse news from multiple categories with sentiment
   async fetchDiverseNews(language: SupportedLanguage = "en"): Promise<NewsArticle[]> {
-    const cacheKey = CacheKeys.news(language);
-    
-    // Try Redis cache first
-    const cachedArticles = await redisCache.get<NewsArticle[]>(cacheKey);
-    if (cachedArticles && cachedArticles.length > 0) {
-      console.log(`✅ Using Redis cached diverse news (${cachedArticles.length} articles) for language: ${language}`);
-      return cachedArticles;
-    }
-    
-    // Fallback to in-memory cache
+    // Check in-memory cache
     if (this.isCacheValid(`diverse-global-${language}`)) {
       const cached = this.cache.get(`diverse-global-${language}`)!.articles;
-      console.log(`✅ Using in-memory cached diverse news (${cached.length} articles) for language: ${language}`);
+      console.log(`✅ Using cached diverse news (${cached.length} articles) for language: ${language}`);
       return cached;
     }
 
@@ -134,16 +114,10 @@ class NewsOrchestrator {
         // Deduplicate and categorize
         const processedArticles = this.processArticles(articles);
 
-        // Attempt Redis operations separately - don't abandon results if caching fails
-        try {
-          await quotaManager.incrementQuota();
-          await redisCache.set(`sentiment:${language}`, sentiment, 300);
-          await redisCache.set(cacheKey, processedArticles, 300);
-        } catch (cacheError) {
-          console.warn('Redis cache operations failed, but continuing with World News API results:', cacheError);
-        }
+        // Increment quota
+        await quotaManager.incrementQuota();
 
-        // In-memory cache always succeeds
+        // Cache in memory
         this.cache.set(`diverse-global-${language}`, {
           articles: processedArticles,
           timestamp: Date.now(),
@@ -164,7 +138,6 @@ class NewsOrchestrator {
       const processed = this.processArticles(articles);
       
       // Cache fallback results
-      await redisCache.set(cacheKey, processed, 300);
       this.cache.set(`diverse-global-${language}`, {
         articles: processed,
         timestamp: Date.now(),
@@ -180,7 +153,6 @@ class NewsOrchestrator {
         const processed = this.processArticles(fallbackArticles);
         
         // Cache fallback results
-        await redisCache.set(cacheKey, processed, 300);
         this.cache.set(`diverse-global-${language}`, {
           articles: processed,
           timestamp: Date.now(),

@@ -944,5 +944,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize WebSocket server for real-time bias updates
   biasWebSocketServer.initialize(httpServer);
   
+  // Initialize pg-boss for background job processing
+  await biasJobQueue.initialize();
+  
   return httpServer;
 }
