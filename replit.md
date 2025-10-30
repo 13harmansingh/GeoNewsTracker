@@ -22,9 +22,9 @@ Preferred communication style: Simple, everyday language.
 - **Database**: PostgreSQL with Drizzle ORM, hosted on Neon Database
 - **Authentication**: Replit Auth with OpenID Connect (Passport.js), PostgreSQL-backed sessions
 - **News Orchestration**: Smart 3-tier fallback with quota management: **World News API** (primary: first 50 calls/day with lat/lng + radius filtering) → **NewsAPI.org** (fallback 1: 54 countries for English, language-aware) → **NewsData.io** (fallback 2: 206 countries, all 5 languages). All tiers ensure schema compliance with sentiment field. Supports Nominatim reverse geocoding (lat/lng → country code). Articles saved to database BEFORE bias analyses to prevent foreign key errors.
-- **Quota Management**: QuotaManager class tracks World News API daily quota (50 calls/day) in Redis with automatic midnight UTC reset. Intelligently skips to fallback tiers when quota exhausted.
-- **Background Jobs**: BullMQ + Redis for async bias detection and summary generation (concurrency=50, 100 jobs/sec rate limit, automatic retry, exponential backoff).
-- **Caching**: Redis layer with 5-minute TTL for news articles and AI results, using language-specific cache keys.
+- **Quota Management**: PostgreSQL-backed QuotaManager with atomic quota reservation (50 calls/day limit enforced via `UPDATE ... WHERE count < limit`). Daily reset at midnight UTC. Falls back to in-memory tracking if database unavailable.
+- **Background Jobs**: pg-boss with PostgreSQL backend for async bias detection and summary generation (teamSize: 3 workers for safe concurrency). Jobs return results for persistence, with automatic retry and WebSocket notifications.
+- **Caching**: In-memory Map cache with 5-minute TTL for news articles (resets on app restart).
 - **Real-Time**: WebSocket server at `/ws/bias-updates` for live job status notifications (queued, completed, failed).
 
 ### Key Components
@@ -40,7 +40,12 @@ Preferred communication style: Simple, everyday language.
 - Optimized for Replit public URL deployments, utilizing HTTPS-only Replit Auth. Frontend assets built with Vite, served by Express. Backend bundled with esbuild. PostgreSQL and Redis configurations via environment variables.
 
 ## Recent Changes (October 30, 2025)
-- **Implemented smart quota management**: QuotaManager automatically tracks World News API usage (50 calls/day limit), resets at midnight UTC, and seamlessly falls back to NewsAPI.org → NewsData.io when quota exhausted
+- **Migrated from Redis to PostgreSQL** (critical): Eliminated Redis quota limits (500k request cap) by migrating background job processing from BullMQ to pg-boss and quota tracking to PostgreSQL
+- **PostgreSQL-backed job queue**: pg-boss now handles all background AI processing (bias detection + neutral summaries) with teamSize: 3 for safe concurrency, job result persistence, and WebSocket notifications
+- **Atomic quota management**: QuotaManager uses PostgreSQL table with atomic `UPDATE ... WHERE count < limit` to prevent race conditions. Daily reset at midnight UTC. Survives app restarts.
+- **Reduced job concurrency**: Lowered from 50 to 3 workers for safer resource usage and better database performance
+- **AI result persistence**: Bias analyses now saved to database for cache hits, preventing redundant HuggingFace API calls
+- **In-memory caching**: News cache now uses Map (5-minute TTL) instead of Redis - acceptable for single-instance deployments
 - **Fixed seamless API fallback chain**: newsOrchestrator now properly passes language parameter through full fallback: World News API → NewsAPI.org → NewsData.io, ensuring all 5 languages work at every tier
 - **Added mobile search button**: Search bar now shows blue arrow button for submitting searches (previously only had clear X button)
 - **Expanded English to 54 countries worldwide**: NewsAPI.org now fetches from ALL supported countries (ae, ar, at, au, be, bg, br, ca, ch, cn, co, cu, cz, de, eg, fr, gb, gr, hk, hu, id, ie, il, in, it, jp, kr, lt, lv, ma, mx, my, ng, nl, no, nz, ph, pl, pt, ro, rs, ru, sa, se, sg, si, sk, th, tr, tw, ua, us, ve, za) covering all 7 continents
@@ -51,7 +56,8 @@ Preferred communication style: Simple, everyday language.
 
 ## External Dependencies
 
-- **Database**: Neon PostgreSQL
+- **Database**: Neon PostgreSQL (for data persistence, sessions, job queue, and quota tracking)
+- **Job Queue**: pg-boss (PostgreSQL-based background job processing)
 - **Maps**: Leaflet.js, Nominatim API (OpenStreetMap) for reverse geocoding
 - **UI Components**: Radix UI, shadcn/ui
 - **Form Handling**: React Hook Form with Zod resolvers

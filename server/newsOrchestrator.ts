@@ -93,12 +93,12 @@ class NewsOrchestrator {
       return cached;
     }
 
-    // Check World News API quota before attempting
-    const hasQuota = await quotaManager.hasQuotaAvailable();
+    // PRIMARY: World News API with ATOMIC quota reservation (first 50 calls/day)
+    // Reserve quota BEFORE making API call to prevent race conditions
+    const quotaReserved = await quotaManager.reserveQuota();
     
-    if (hasQuota) {
+    if (quotaReserved) {
       try {
-        // PRIMARY: Fetch from World News API with sentiment analysis (first 50 calls/day)
         console.log(`🌍 Fetching diverse news from World News API (language: ${language})...`);
         const { articles, sentiment } = await worldNewsApi.searchNews({
           language,
@@ -114,10 +114,7 @@ class NewsOrchestrator {
         // Deduplicate and categorize
         const processedArticles = this.processArticles(articles);
 
-        // Increment quota
-        await quotaManager.incrementQuota();
-
-        // Cache in memory
+        // Cache in memory (quota already reserved atomically above)
         this.cache.set(`diverse-global-${language}`, {
           articles: processedArticles,
           timestamp: Date.now(),
@@ -127,6 +124,7 @@ class NewsOrchestrator {
         return processedArticles;
       } catch (error) {
         console.warn('World News API failed, trying NewsAPI fallback:', error);
+        // Note: Quota was already decremented, but that's acceptable since we attempted the call
       }
     } else {
       console.log(`⏭️  World News API quota exhausted, skipping to NewsAPI.org fallback`);

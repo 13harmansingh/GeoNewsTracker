@@ -6,6 +6,7 @@ import { newsAPIService } from "./newsApiService";
 import { gNewsService } from "./gNewsService";
 import { newsOrchestrator } from "./newsOrchestrator";
 import { worldNewsApi } from "./worldNewsApi";
+import { quotaManager } from "./quotaManager";
 import { biasDetectionService } from "./biasDetectionService";
 import { biasJobQueue } from "./biasJobQueue";
 import { biasWebSocketServer } from "./websocket";
@@ -946,6 +947,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Initialize pg-boss for background job processing
   await biasJobQueue.initialize();
+  
+  // Initialize quota manager with PostgreSQL persistence
+  await quotaManager.initialize();
   
   return httpServer;
 }

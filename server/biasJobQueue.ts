@@ -44,45 +44,32 @@ class BiasJobQueue {
 
       await this.boss.start();
       
-      // Register worker for bias detection jobs with concurrency of 3
+      // Register worker for bias detection jobs (processes one job at a time per worker)
+      // teamSize: 3 means up to 3 workers can run concurrently
       await this.boss.work(
         'detect-bias',
-        { batchSize: 3 }, // Process up to 3 jobs concurrently
-        async (jobs: PgBoss.Job<BiasJobData>[]) => {
-          // Process all jobs in the batch
-          for (const job of jobs) {
-            const startTime = Date.now();
-            const data = job.data;
+        { teamSize: 3 }, // Up to 3 concurrent workers
+        async (job: PgBoss.Job<BiasJobData>) => {
+          const startTime = Date.now();
+          const data = job.data;
+          
+          console.log(`⚡ Processing bias job ${job.id} for: "${data.text.substring(0, 50)}..."`);
+          
+          try {
+            let jobResult: BiasJobResult;
             
-            console.log(`⚡ Processing bias job ${job.id} for: "${data.text.substring(0, 50)}..."`);
-            
-            try {
-              let jobResult: BiasJobResult;
-              
-              // CACHE CHECK: If articleId provided, check if bias analysis already exists
-              if (data.articleId) {
-                const existing = await storage.getBiasAnalysis(data.articleId);
-                if (existing && existing.aiSummary) {
-                  console.log(`✅ CACHE HIT: Reusing saved AI analysis for article ${data.articleId}`);
-                  jobResult = {
-                    prediction: (existing.aiPrediction || 'center') as 'left' | 'center' | 'right',
-                    confidence: existing.aiConfidence || 0.5,
-                    summary: existing.aiSummary
-                  };
-                } else {
-                  console.log(`❌ CACHE MISS: No saved AI analysis, calling HuggingFace...`);
-                  const [result, summary] = await Promise.all([
-                    biasDetectionService.detectBias(data.text),
-                    biasDetectionService.generateNeutralSummary(data.text, 80)
-                  ]);
-                  jobResult = {
-                    prediction: result.prediction,
-                    confidence: result.confidence,
-                    summary
-                  };
-                }
+            // CACHE CHECK: If articleId provided, check if bias analysis already exists
+            if (data.articleId) {
+              const existing = await storage.getBiasAnalysis(data.articleId);
+              if (existing && existing.aiSummary) {
+                console.log(`✅ CACHE HIT: Reusing saved AI analysis for article ${data.articleId}`);
+                jobResult = {
+                  prediction: (existing.aiPrediction || 'center') as 'left' | 'center' | 'right',
+                  confidence: existing.aiConfidence || 0.5,
+                  summary: existing.aiSummary
+                };
               } else {
-                // No articleId, just run the AI
+                console.log(`❌ CACHE MISS: No saved AI analysis, calling HuggingFace...`);
                 const [result, summary] = await Promise.all([
                   biasDetectionService.detectBias(data.text),
                   biasDetectionService.generateNeutralSummary(data.text, 80)
@@ -92,24 +79,50 @@ class BiasJobQueue {
                   confidence: result.confidence,
                   summary
                 };
+                
+                // PERSIST: Save AI results to database for future cache hits
+                if (data.articleId) {
+                  await storage.createBiasAnalysis({
+                    articleId: data.articleId,
+                    aiPrediction: jobResult.prediction,
+                    aiConfidence: jobResult.confidence,
+                    aiSummary: jobResult.summary,
+                    createdAt: new Date()
+                  });
+                  console.log(`💾 Saved AI analysis to database for article ${data.articleId}`);
+                }
               }
-
-              const elapsed = Date.now() - startTime;
-              console.log(`✅ Job ${job.id} completed in ${elapsed}ms`);
-              
-              this.metrics.totalProcessed++;
-              
-              // Broadcast completion via WebSocket
-              biasWebSocketServer.notifyJobCompleted(data.jobId, jobResult);
-            } catch (error: any) {
-              this.metrics.totalFailed++;
-              console.error(`❌ Job ${job.id} failed:`, error.message);
-              
-              // Broadcast failure via WebSocket
-              biasWebSocketServer.notifyJobFailed(data.jobId, error.message);
-              
-              throw error; // pg-boss will handle retry
+            } else {
+              // No articleId, just run the AI
+              const [result, summary] = await Promise.all([
+                biasDetectionService.detectBias(data.text),
+                biasDetectionService.generateNeutralSummary(data.text, 80)
+              ]);
+              jobResult = {
+                prediction: result.prediction,
+                confidence: result.confidence,
+                summary
+              };
             }
+
+            const elapsed = Date.now() - startTime;
+            console.log(`✅ Job ${job.id} completed in ${elapsed}ms`);
+            
+            this.metrics.totalProcessed++;
+            
+            // Broadcast completion via WebSocket
+            biasWebSocketServer.notifyJobCompleted(data.jobId, jobResult);
+            
+            // CRITICAL: Return the result so pg-boss stores it as the job output
+            return jobResult;
+          } catch (error: any) {
+            this.metrics.totalFailed++;
+            console.error(`❌ Job ${job.id} failed:`, error.message);
+            
+            // Broadcast failure via WebSocket
+            biasWebSocketServer.notifyJobFailed(data.jobId, error.message);
+            
+            throw error; // pg-boss will handle retry
           }
         }
       );
