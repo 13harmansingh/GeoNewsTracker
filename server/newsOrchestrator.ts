@@ -3,6 +3,7 @@ import { newsAPIService, type SupportedLanguage } from "./newsApiService";
 import { newsService } from "./newsService";
 import { redisCache, CacheKeys } from "./redisCache";
 import { worldNewsApi, type SentimentMetrics } from "./worldNewsApi";
+import { quotaManager } from "./quotaManager";
 
 // Category detection keywords
 const CATEGORY_KEYWORDS = {
@@ -112,41 +113,71 @@ class NewsOrchestrator {
       return cached;
     }
 
-    try {
-      // PRIMARY: Fetch from World News API with sentiment analysis
-      console.log(`🌍 Fetching diverse news from World News API (language: ${language})...`);
-      const { articles, sentiment } = await worldNewsApi.searchNews({
-        language,
-        number: 20 // Get top 20 headlines
-      });
-      
-      console.log(`📥 Received ${articles.length} articles with sentiment: ${sentiment.positive}% positive, ${sentiment.negative}% negative`);
-      
-      if (!articles || articles.length === 0) {
-        throw new Error('No articles from World News API');
+    // Check World News API quota before attempting
+    const hasQuota = await quotaManager.hasQuotaAvailable();
+    
+    if (hasQuota) {
+      try {
+        // PRIMARY: Fetch from World News API with sentiment analysis (first 50 calls/day)
+        console.log(`🌍 Fetching diverse news from World News API (language: ${language})...`);
+        const { articles, sentiment } = await worldNewsApi.searchNews({
+          language,
+          number: 20 // Get top 20 headlines
+        });
+        
+        console.log(`📥 Received ${articles.length} articles with sentiment: ${sentiment.positive}% positive, ${sentiment.negative}% negative`);
+        
+        if (!articles || articles.length === 0) {
+          throw new Error('No articles from World News API');
+        }
+
+        // Deduplicate and categorize
+        const processedArticles = this.processArticles(articles);
+
+        // Attempt Redis operations separately - don't abandon results if caching fails
+        try {
+          await quotaManager.incrementQuota();
+          await redisCache.set(`sentiment:${language}`, sentiment, 300);
+          await redisCache.set(cacheKey, processedArticles, 300);
+        } catch (cacheError) {
+          console.warn('Redis cache operations failed, but continuing with World News API results:', cacheError);
+        }
+
+        // In-memory cache always succeeds
+        this.cache.set(`diverse-global-${language}`, {
+          articles: processedArticles,
+          timestamp: Date.now(),
+        });
+
+        console.log(`✅ Fetched ${processedArticles.length} diverse news articles with sentiment from World News API`);
+        return processedArticles;
+      } catch (error) {
+        console.warn('World News API failed, trying NewsAPI fallback:', error);
       }
-
-      // Store sentiment data in cache
-      await redisCache.set(`sentiment:${language}`, sentiment, 300);
-
-      // Deduplicate and categorize
-      const processedArticles = this.processArticles(articles);
+    } else {
+      console.log(`⏭️  World News API quota exhausted, skipping to NewsAPI.org fallback`);
+    }
+    
+    // FALLBACK TIER 1: NewsAPI.org (54 countries for English)
+    try {
+      const articles = await newsAPIService.getWorldwideHeadlines(language);
+      const processed = this.processArticles(articles);
       
-      // Cache the result in both Redis and in-memory
-      await redisCache.set(cacheKey, processedArticles, 300); // 5 minutes
+      // Cache fallback results
+      await redisCache.set(cacheKey, processed, 300);
       this.cache.set(`diverse-global-${language}`, {
-        articles: processedArticles,
+        articles: processed,
         timestamp: Date.now(),
       });
-
-      console.log(`✅ Fetched ${processedArticles.length} diverse news articles with sentiment from World News API`);
-      return processedArticles;
-    } catch (error) {
-      console.warn('World News API failed, trying NewsAPI fallback:', error);
       
+      return processed;
+    } catch (fallbackError) {
+      console.warn('NewsAPI failed, trying NewsData.io fallback:', fallbackError);
+      
+      // FALLBACK TIER 2: NewsData.io
       try {
-        const articles = await newsAPIService.getWorldwideHeadlines(language);
-        const processed = this.processArticles(articles);
+        const fallbackArticles = await newsService.fetchWorldwideNews(undefined, undefined, undefined, language);
+        const processed = this.processArticles(fallbackArticles);
         
         // Cache fallback results
         await redisCache.set(cacheKey, processed, 300);
@@ -156,25 +187,9 @@ class NewsOrchestrator {
         });
         
         return processed;
-      } catch (fallbackError) {
-        console.warn('NewsAPI failed, trying NewsData.io fallback:', fallbackError);
-        
-        try {
-          const fallbackArticles = await newsService.fetchWorldwideNews(undefined, undefined, undefined, language);
-          const processed = this.processArticles(fallbackArticles);
-          
-          // Cache fallback results
-          await redisCache.set(cacheKey, processed, 300);
-          this.cache.set(`diverse-global-${language}`, {
-            articles: processed,
-            timestamp: Date.now(),
-          });
-          
-          return processed;
-        } catch (finalError) {
-          console.error('All news sources failed:', finalError);
-          return [];
-        }
+      } catch (finalError) {
+        console.error('All news sources failed:', finalError);
+        return [];
       }
     }
   }
