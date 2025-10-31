@@ -15,7 +15,7 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
   
   // News methods
-  getNewsArticles(language?: string): Promise<NewsArticle[]>;
+  getNewsArticles(language?: string, limit?: number): Promise<NewsArticle[]>;
   getNewsArticlesByLocation(lat: number, lng: number, radius?: number, language?: string): Promise<NewsArticle[]>;
   getCachedArticlesByLocation(lat: number, lng: number, radius: number, language: string): Promise<NewsArticle[]>;
   getNewsArticlesByCategory(category: string, language?: string): Promise<NewsArticle[]>;
@@ -194,10 +194,21 @@ class MemStorage implements IStorage {
     return user;
   }
 
-  async getNewsArticles(language?: string): Promise<NewsArticle[]> {
-    const articles = Array.from(this.newsArticles.values());
-    if (!language) return articles;
-    return articles.filter(article => article.language === language);
+  async getNewsArticles(language?: string, limit?: number): Promise<NewsArticle[]> {
+    let articles = Array.from(this.newsArticles.values());
+    if (language) {
+      articles = articles.filter(article => article.language === language);
+    }
+    // Sort by published date (most recent first)
+    articles.sort((a, b) => {
+      const dateA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
+      const dateB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+      return dateB - dateA;
+    });
+    if (limit) {
+      articles = articles.slice(0, limit);
+    }
+    return articles;
   }
 
   async getNewsArticlesByLocation(lat: number, lng: number, radius: number = 0.01, language?: string): Promise<NewsArticle[]> {
@@ -400,10 +411,22 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async getNewsArticles(language?: string): Promise<NewsArticle[]> {
-    const articles = await db.select().from(newsArticles);
-    if (!language) return articles;
-    return articles.filter(article => article.language === language);
+  async getNewsArticles(language?: string, limit: number = 100): Promise<NewsArticle[]> {
+    // Build optimized SQL query with WHERE, ORDER BY, and LIMIT
+    if (language) {
+      return await db
+        .select()
+        .from(newsArticles)
+        .where(eq(newsArticles.language, language))
+        .orderBy(desc(newsArticles.publishedAt))
+        .limit(limit);
+    }
+    
+    return await db
+      .select()
+      .from(newsArticles)
+      .orderBy(desc(newsArticles.publishedAt))
+      .limit(limit);
   }
 
   async getNewsArticlesByLocation(lat: number, lng: number, radius: number = 0.01, language?: string): Promise<NewsArticle[]> {
