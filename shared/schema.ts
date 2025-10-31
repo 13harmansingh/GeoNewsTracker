@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, real, timestamp, varchar, jsonb, index } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, real, timestamp, varchar, jsonb, index, date } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from "drizzle-orm";
@@ -12,6 +12,12 @@ export const sessions = pgTable(
   },
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
+
+export const worldNewsQuota = pgTable("world_news_quota", {
+  id: integer("id").primaryKey().default(1),
+  count: integer("count").default(0).notNull(),
+  date: date("date").default(sql`CURRENT_DATE`).notNull(),
+});
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -46,7 +52,12 @@ export const newsArticles = pgTable("news_articles", {
   sentiment: real("sentiment"), // -1 to +1 sentiment score from World News API
   fetchedAt: timestamp("fetched_at").defaultNow(), // When article was cached from API
   cacheExpiresAt: timestamp("cache_expires_at"), // When cache should be refreshed (TTL)
-});
+}, (table) => [
+  index("idx_news_language").on(table.language),
+  index("idx_news_lat_lng").on(table.latitude, table.longitude),
+  index("idx_news_published_at").on(table.publishedAt),
+  index("idx_news_language_published").on(table.language, table.publishedAt),
+]);
 
 export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
