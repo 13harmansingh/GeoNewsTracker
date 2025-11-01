@@ -1,6 +1,6 @@
 # KNEW - Knowledge Nexus for Every Witness
 
-**Free AI Demo for EIC Grant | TRL 7 Target**
+**TRL 7 Target**
 
 A professional location-based news analysis platform demonstrating advanced TRL 7 capabilities with worldwide coverage, multilingual support (5 languages), and AI-powered bias detection.
 
@@ -39,7 +39,7 @@ A professional location-based news analysis platform demonstrating advanced TRL 
 - Language-specific mock data fallback when API limits reached
 - Separate caching per language for optimal performance
 
-### AI-Powered Analysis (Free Tier)
+### AI-Powered Analysis 
 - **Bias Detection**: HuggingFace-powered analysis with confidence scores
   - Model: `cardiffnlp/twitter-roberta-base-bias-detection`
   - Automatic pre-tagging (LEFT/CENTER/RIGHT)
@@ -113,7 +113,7 @@ npm run db:push
 npm run dev
 ```
 
-The app will be available at `http://localhost:5000`
+The app will be available at `https://r4w.space`
 
 ## 🔧 Configuration
 
@@ -342,7 +342,7 @@ Expected output:
 
 ## 🗺️ Deployment
 
-### Replit (Recommended for EIC Demo)
+### Replit
 The app is optimized for Replit's platform with:
 - Automatic database provisioning
 - Built-in secrets management
@@ -369,7 +369,7 @@ npm run build
 npm start
 ```
 
-## 🎯 EIC Demo Notes
+
 
 ### **System Prototype Demonstration in Operational Environment (TRL 7)**
 
@@ -415,11 +415,11 @@ For issues or questions:
 
 ## 📄 License
 
-Built for EIC Grant demonstration. All rights reserved.
+KNEW. All rights reserved.
 
 ---
 
-**KNEW** - Knowledge Nexus for Every Witness  
-**Free AI Demo | TRL 7 Target | Multilingual Support**
+**KNEW** - Knowledge Network of Every Witness  
+**TRL 7 Target | Multilingual Support**
 
 Empowering every witness with knowledge and transparency across 5 languages.
