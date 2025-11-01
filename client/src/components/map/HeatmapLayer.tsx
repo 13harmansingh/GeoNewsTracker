@@ -18,22 +18,21 @@ interface HeatmapLayerProps {
   id?: string;
 }
 
+// Snapchat-style gradient: blue → cyan → yellow → orange → red
 const DEFAULT_GRADIENT = {
-  0.0: '#FFEB3B',  // Yellow (low)
-  0.2: '#FFC107',  // Amber
-  0.4: '#FF9800',  // Orange
-  0.6: '#FF5722',  // Deep Orange
-  0.8: '#F44336',  // Red
-  1.0: '#D32F2F',  // Dark Red (high)
+  0.0: '#3B82F6',  // Blue (low density)
+  0.25: '#06B6D4', // Cyan
+  0.5: '#FBBF24',  // Yellow
+  0.75: '#F97316', // Orange
+  1.0: '#EF4444',  // Red (high density)
 };
 
 export const FETCHED_ZONE_GRADIENT = {
-  0.0: '#81D4FA',  // Light Blue (low)
-  0.2: '#4FC3F7',  // Blue
-  0.4: '#29B6F6',  // Bright Blue
-  0.6: '#039BE5',  // Deep Blue
-  0.8: '#26C6DA',  // Cyan
-  1.0: '#00ACC1',  // Dark Cyan (high)
+  0.0: '#60A5FA',  // Light Blue (low)
+  0.3: '#3B82F6',  // Blue
+  0.5: '#2563EB',  // Darker Blue
+  0.7: '#06B6D4',  // Cyan
+  1.0: '#0891B2',  // Deep Cyan (high)
 };
 
 export default function HeatmapLayer({ news, onMarkerClick, gradient = DEFAULT_GRADIENT, id = 'default' }: HeatmapLayerProps) {
@@ -49,15 +48,27 @@ export default function HeatmapLayer({ news, onMarkerClick, gradient = DEFAULT_G
       0.8, // Intensity (0-1) - can be adjusted based on article properties
     ]);
 
-    // Create heatmap layer with configurable gradient
-    const heatLayer = L.heatLayer(heatData, {
-      radius: 35, // Larger radius for organic blob shapes
-      blur: 25, // High blur for smooth, organic edges
-      maxZoom: 17,
-      max: 1.0,
-      minOpacity: 0.4,
-      gradient: gradient
-    }).addTo(map);
+    // Calculate zoom-responsive radius and blur (Snapchat-style)
+    const getHeatmapOptions = (zoom: number) => {
+      // Scale radius and blur with zoom for organic, persistent blobs
+      // At low zoom (world view): smaller blobs
+      // At high zoom (city view): larger blobs
+      const baseRadius = 20;
+      const baseBlur = 15;
+      const zoomFactor = Math.pow(1.4, zoom - 5); // Exponential scaling
+      
+      return {
+        radius: Math.max(20, Math.min(baseRadius * zoomFactor, 80)),
+        blur: Math.max(15, Math.min(baseBlur * zoomFactor, 60)),
+        maxZoom: 20,
+        max: 1.0,
+        minOpacity: 0.5,
+        gradient: gradient
+      };
+    };
+
+    // Create initial heatmap layer
+    let heatLayer = L.heatLayer(heatData, getHeatmapOptions(map.getZoom())).addTo(map);
 
     // Click handler for interactive heatmap
     const handleHeatmapClick = (e: L.LeafletMouseEvent) => {
@@ -89,9 +100,23 @@ export default function HeatmapLayer({ news, onMarkerClick, gradient = DEFAULT_G
       map.on('click', handleHeatmapClick);
     }
 
+    // Zoom handler to update heatmap options dynamically (Snapchat-style)
+    const handleZoomEnd = () => {
+      const newOptions = getHeatmapOptions(map.getZoom());
+      
+      // Remove old layer
+      map.removeLayer(heatLayer);
+      
+      // Create new layer with updated radius/blur
+      heatLayer = L.heatLayer(heatData, newOptions).addTo(map);
+    };
+
+    map.on('zoomend', handleZoomEnd);
+
     // Cleanup on unmount - CRITICAL: remove click listener to prevent memory leaks
     return () => {
       map.removeLayer(heatLayer);
+      map.off('zoomend', handleZoomEnd);
       if (onMarkerClick) {
         map.off('click', handleHeatmapClick);
       }

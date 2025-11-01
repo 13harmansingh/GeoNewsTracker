@@ -73,7 +73,7 @@ export default function InteractiveMap({
         ref={mapRef}
         center={[center[0], center[1]]}
         zoom={zoom}
-        style={{ height: '100%', width: '100%', backgroundColor: '#AAD3DF' }}
+        style={{ height: '100%', width: '100%', backgroundColor: '#C5E1F5' }}
         zoomControl={false}
         className="z-0"
         minZoom={2}
@@ -83,8 +83,10 @@ export default function InteractiveMap({
         <MapController center={center} zoom={zoom} />
         
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          subdomains="abcd"
+          maxZoom={20}
           noWrap={true}
           bounds={[[-90, -180], [90, 180]]}
         />
