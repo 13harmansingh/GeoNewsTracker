@@ -39,7 +39,16 @@ Preferred communication style: Simple, everyday language.
 ### Deployment Strategy
 - Optimized for Replit public URL deployments, utilizing HTTPS-only Replit Auth. Frontend assets built with Vite, served by Express. Backend bundled with esbuild. PostgreSQL and Redis configurations via environment variables.
 
-## Recent Changes (October 31, 2025)
+## Recent Changes (November 1, 2025)
+- **Multi-Heatmap System with Smart Caching**: Revolutionary persistent visualization with zero redundant fetches
+  - **Global Heatmap** (red→yellow): Shows all current news, clickable to display nearby articles instantly (no fetch)
+  - **Fetched Zone Heatmaps** (blue→cyan): Location-based fetches create persistent colored overlays
+  - **LocalStorage Caching**: All fetched zones saved to browser with 24-hour auto-expiry
+  - **Instant Restore**: Page refreshes reload all cached heatmaps without re-fetching
+  - **Multi-Layer Rendering**: Global and all fetched zones visible simultaneously for rich geographic context
+  - Zones deduplicated by country + language to prevent redundant storage
+
+## Previous Changes (October 31, 2025)
 - **Major Performance Overhaul**: Dramatically improved site speed and responsiveness
   - Added database indexes on language, lat/lng, publishedAt, and composite language+publishedAt for 10x faster queries
   - Optimized database queries with SQL WHERE, ORDER BY DESC, and LIMIT (100 articles max) instead of in-memory filtering
