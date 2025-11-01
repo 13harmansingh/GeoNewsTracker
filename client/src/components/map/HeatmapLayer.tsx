@@ -47,34 +47,42 @@ export default function HeatmapLayer({ news, onMarkerClick }: HeatmapLayerProps)
       }
     }).addTo(map);
 
-    // Add click handlers for interactive heatmap
-    if (onMarkerClick) {
-      map.on('click', (e) => {
-        // Find nearest article to click point
-        let nearestArticle: NewsArticle | null = null;
-        let minDistance = Infinity;
+    // Click handler for interactive heatmap
+    const handleHeatmapClick = (e: L.LeafletMouseEvent) => {
+      if (!onMarkerClick) return;
 
-        news.forEach((article) => {
-          const articleLatLng = L.latLng(article.latitude, article.longitude);
-          const clickLatLng = e.latlng;
-          const distance = articleLatLng.distanceTo(clickLatLng);
+      // Find nearest article to click point
+      let nearestArticle: NewsArticle | null = null;
+      let minDistance = Infinity;
 
-          // Within 50km radius
-          if (distance < 50000 && distance < minDistance) {
-            minDistance = distance;
-            nearestArticle = article;
-          }
-        });
+      news.forEach((article) => {
+        const articleLatLng = L.latLng(article.latitude, article.longitude);
+        const clickLatLng = e.latlng;
+        const distance = articleLatLng.distanceTo(clickLatLng);
 
-        if (nearestArticle) {
-          onMarkerClick(nearestArticle);
+        // Within 50km radius
+        if (distance < 50000 && distance < minDistance) {
+          minDistance = distance;
+          nearestArticle = article;
         }
       });
+
+      if (nearestArticle) {
+        onMarkerClick(nearestArticle);
+      }
+    };
+
+    // Add click handler if callback provided
+    if (onMarkerClick) {
+      map.on('click', handleHeatmapClick);
     }
 
-    // Cleanup on unmount
+    // Cleanup on unmount - CRITICAL: remove click listener to prevent memory leaks
     return () => {
       map.removeLayer(heatLayer);
+      if (onMarkerClick) {
+        map.off('click', handleHeatmapClick);
+      }
     };
   }, [map, news, onMarkerClick]);
 
