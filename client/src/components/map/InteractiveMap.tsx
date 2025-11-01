@@ -3,6 +3,8 @@ import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import type { NewsArticle } from "@shared/schema";
 import HeatmapLayer, { FETCHED_ZONE_GRADIENT } from "./HeatmapLayer";
+import CountryHeatmapLayer from "./CountryHeatmapLayer";
+import type { CountryData } from "@/utils/countryAggregation";
 import "leaflet/dist/leaflet.css";
 
 interface ZoneData {
@@ -27,8 +29,10 @@ function MapController({ center, zoom }: { center: number[], zoom: number }) {
 interface InteractiveMapProps {
   globalNews: NewsArticle[];
   fetchedZones: ZoneData[];
+  countryData?: CountryData[];
   onGlobalHeatmapClick: (article: NewsArticle) => void;
   onZoneHeatmapClick: (zone: ZoneData) => void;
+  onCountryHeatmapClick?: (country: CountryData) => void;
   center: number[];
   zoom: number;
   isLoading: boolean;
@@ -51,8 +55,10 @@ function MapClickHandler({ onAreaClick }: { onAreaClick?: (lat: number, lng: num
 export default function InteractiveMap({ 
   globalNews,
   fetchedZones,
+  countryData = [],
   onGlobalHeatmapClick,
   onZoneHeatmapClick,
+  onCountryHeatmapClick,
   center, 
   zoom,
   isLoading,
@@ -91,6 +97,14 @@ export default function InteractiveMap({
             news={globalNews} 
             onMarkerClick={onGlobalHeatmapClick}
             id="global"
+          />
+        )}
+
+        {/* Country-Level Aggregated Heatmaps - proactive visualization */}
+        {!isLoading && countryData && countryData.length > 0 && onCountryHeatmapClick && (
+          <CountryHeatmapLayer
+            countries={countryData}
+            onClick={onCountryHeatmapClick}
           />
         )}
 

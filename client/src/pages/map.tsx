@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import InteractiveMap from "@/components/map/InteractiveMap";
 import NewsPanel from "@/components/map/NewsPanel";
 import NavigationBar from "@/components/map/NavigationBar";
@@ -9,6 +9,7 @@ import { useNews } from "@/hooks/use-news";
 import { useArticleExperience } from "@/contexts/ArticleExperienceContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { NewsCache } from "@/utils/newsCache";
+import { CountryAggregation, type CountryData } from "@/utils/countryAggregation";
 import type { NewsArticle } from "@shared/schema";
 
 interface ZoneData {
@@ -52,6 +53,14 @@ export default function MapPage() {
     ? (searchResults || []) 
     : heatmapNews;
 
+  // Aggregate news by country for proactive heatmaps
+  const countryData = useMemo(() => {
+    if (!heatmapNews || heatmapNews.length === 0) return [];
+    const aggregated = CountryAggregation.aggregateByCountry(heatmapNews);
+    console.log(`🌍 Aggregated ${heatmapNews.length} articles into ${aggregated.length} countries`);
+    return aggregated;
+  }, [heatmapNews]);
+
   const handleMarkerClick = (article: NewsArticle) => {
     openArticle(article);
   };
@@ -88,6 +97,23 @@ export default function MapPage() {
     console.log(`🗂️ Opening zone drawer with ${zone.articles.length} articles for ${zone.country}`);
     setActiveZone(zone);
     openArticle(zone.articles[0]);
+  };
+
+  const handleCountryClick = (country: CountryData) => {
+    console.log(`🌍 Country heatmap clicked: ${country.country} (${country.count} articles)`);
+    
+    // Convert CountryData to ZoneData format
+    const countryZone: ZoneData = {
+      id: `country-${country.countryCode}-${language}`,
+      country: country.country,
+      countryCode: country.countryCode,
+      articles: country.articles,
+      center: country.center,
+      language
+    };
+    
+    setActiveZone(countryZone);
+    openArticle(country.articles[0]);
   };
 
   const handleCloseDrawer = () => {
@@ -339,8 +365,10 @@ export default function MapPage() {
       <InteractiveMap
         globalNews={heatmapNews}
         fetchedZones={fetchedZones}
+        countryData={countryData}
         onGlobalHeatmapClick={handleGlobalHeatmapClick}
         onZoneHeatmapClick={handleZoneClick}
+        onCountryHeatmapClick={handleCountryClick}
         center={mapCenter}
         zoom={mapZoom}
         isLoading={isLoading || isReverseGeocoding}
