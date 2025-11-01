@@ -45,10 +45,10 @@ class BiasJobQueue {
       await this.boss.start();
       
       // Register worker for bias detection jobs (processes one job at a time per worker)
-      // teamSize: 3 means up to 3 workers can run concurrently
+      // teamSize: 5 means up to 5 workers can run concurrently
       await this.boss.work(
         'detect-bias',
-        { teamSize: 3 }, // Up to 3 concurrent workers
+        { teamSize: 5 }, // Up to 5 concurrent workers for faster AI processing
         async (job: PgBoss.Job<BiasJobData>) => {
           const startTime = Date.now();
           const data = job.data;
@@ -128,7 +128,7 @@ class BiasJobQueue {
       );
 
       this.isInitialized = true;
-      console.log('✅ pg-boss initialized with PostgreSQL backend (3 concurrent jobs)');
+      console.log('✅ pg-boss initialized with PostgreSQL backend (5 concurrent jobs)');
     } catch (error) {
       console.error('❌ Failed to initialize pg-boss:', error);
       this.isInitialized = false;
