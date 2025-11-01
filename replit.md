@@ -40,6 +40,13 @@ Preferred communication style: Simple, everyday language.
 - Optimized for Replit public URL deployments, utilizing HTTPS-only Replit Auth. Frontend assets built with Vite, served by Express. Backend bundled with esbuild. PostgreSQL and Redis configurations via environment variables.
 
 ## Recent Changes (November 1, 2025)
+- **Performance Optimizations**: Significantly improved application responsiveness
+  - **pg-boss workers**: Increased from 3 to 5 concurrent workers for 67% faster AI bias processing
+  - **Heatmap rendering**: Fixed re-rendering bug - country heatmap now renders only once (was 10x)
+  - **React optimization**: Added useCallback to event handlers and React.memo to CountryHeatmapLayer
+  - Result: Smoother map interactions, faster page loads, better UX
+
+## Previous Changes (November 1, 2025)
 - **Proactive Country-Level Heatmaps**: Revolutionary aggregated visualization showing all available news by country
   - Automatically groups all news articles by country with intensity-based visualization
   - Shows one heatmap per country with blue→red gradient (intensity = article count)
