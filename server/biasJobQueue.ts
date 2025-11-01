@@ -45,10 +45,10 @@ class BiasJobQueue {
       await this.boss.start();
       
       // Register worker for bias detection jobs (processes one job at a time per worker)
-      // teamSize: 5 means up to 5 workers can run concurrently
+      // teamSize: 5 fetches 5 jobs per poll, teamConcurrency: 5 processes them concurrently
       await this.boss.work(
         'detect-bias',
-        { teamSize: 5 }, // Up to 5 concurrent workers for faster AI processing
+        { teamSize: 5, teamConcurrency: 5 } as any, // Up to 5 concurrent workers for faster AI processing
         async (job: PgBoss.Job<BiasJobData>) => {
           const startTime = Date.now();
           const data = job.data;
