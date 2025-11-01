@@ -1,4 +1,4 @@
-# KNEW - Knowledge Nexus for Every Witness
+# KNEW - Knowledge Network of Every Witness
 
 **TRL 7 Target**
 
