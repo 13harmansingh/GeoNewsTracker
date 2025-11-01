@@ -123,6 +123,12 @@
     filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
   }
 
+  /* Snapchat-style Map Tiles - Vibrant Mint-Green Landmasses */
+  .snapchat-map-tiles {
+    filter: saturate(0.8) brightness(1.15) hue-rotate(20deg) contrast(0.9);
+    opacity: 0.92;
+  }
+
   /* Map Ocean Background */
   .bg-ocean {
     background-color: #AAD3DF;
