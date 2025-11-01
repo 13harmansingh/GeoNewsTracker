@@ -41,13 +41,13 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (November 1, 2025)
 - **Snapchat-Style Map Redesign**: Complete visual transformation matching Snapchat's Snap Map aesthetic
-  - **Clean Light Theme**: Switched to CartoDB Positron tiles (soft, minimal Snapchat-style basemap)
-  - **Ocean Color**: Updated to soft blue (#C5E1F5) matching Snapchat's water color
-  - **Zoom-Responsive Heatmaps**: Blobs dynamically scale with zoom level (exponential radius/blur)
+  - **Pastel Color Tiles**: Switched to CartoDB Voyager tiles with soft mint/green landmasses and light blue ocean
+  - **Ocean Color**: Soft blue background (#C5E1F5) matching Snapchat's water aesthetic
+  - **Seamless Zoom Animation**: Heatmaps now zoom smoothly with map tiles (no more jumpy refreshes)
   - **Snapchat Gradient**: blue→cyan→yellow→orange→red color scheme for organic heat visualization
-  - **Geolocation**: Browser-based "Find My Location" button (already functional)
-  - **Reverse Geocoding**: Click-to-fetch location-based news (already functional)
-  - Result: Beautiful, smooth heatmaps that persist at all zoom levels like Snapchat
+  - **Geolocation**: Browser-based "Find My Location" button with fallback to NYC
+  - **Reverse Geocoding**: Click anywhere on map to fetch location-based news
+  - Result: Beautiful, smooth heatmaps that zoom seamlessly like Snapchat's Snap Map
 
 - **Performance Optimizations**: Significantly improved application responsiveness
   - **pg-boss workers**: Increased from 3 to 5 concurrent workers for 67% faster AI bias processing

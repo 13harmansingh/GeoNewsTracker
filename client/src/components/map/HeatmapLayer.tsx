@@ -48,27 +48,16 @@ export default function HeatmapLayer({ news, onMarkerClick, gradient = DEFAULT_G
       0.8, // Intensity (0-1) - can be adjusted based on article properties
     ]);
 
-    // Calculate zoom-responsive radius and blur (Snapchat-style)
-    const getHeatmapOptions = (zoom: number) => {
-      // Scale radius and blur with zoom for organic, persistent blobs
-      // At low zoom (world view): smaller blobs
-      // At high zoom (city view): larger blobs
-      const baseRadius = 20;
-      const baseBlur = 15;
-      const zoomFactor = Math.pow(1.4, zoom - 5); // Exponential scaling
-      
-      return {
-        radius: Math.max(20, Math.min(baseRadius * zoomFactor, 80)),
-        blur: Math.max(15, Math.min(baseBlur * zoomFactor, 60)),
-        maxZoom: 20,
-        max: 1.0,
-        minOpacity: 0.5,
-        gradient: gradient
-      };
-    };
-
-    // Create initial heatmap layer
-    let heatLayer = L.heatLayer(heatData, getHeatmapOptions(map.getZoom())).addTo(map);
+    // Create heatmap layer with static radius/blur for smooth zoom transitions
+    // Leaflet will handle zoom animations naturally without recreating the layer
+    const heatLayer = L.heatLayer(heatData, {
+      radius: 35,
+      blur: 25,
+      maxZoom: 20,
+      max: 1.0,
+      minOpacity: 0.5,
+      gradient: gradient
+    }).addTo(map);
 
     // Click handler for interactive heatmap
     const handleHeatmapClick = (e: L.LeafletMouseEvent) => {
@@ -100,23 +89,9 @@ export default function HeatmapLayer({ news, onMarkerClick, gradient = DEFAULT_G
       map.on('click', handleHeatmapClick);
     }
 
-    // Zoom handler to update heatmap options dynamically (Snapchat-style)
-    const handleZoomEnd = () => {
-      const newOptions = getHeatmapOptions(map.getZoom());
-      
-      // Remove old layer
-      map.removeLayer(heatLayer);
-      
-      // Create new layer with updated radius/blur
-      heatLayer = L.heatLayer(heatData, newOptions).addTo(map);
-    };
-
-    map.on('zoomend', handleZoomEnd);
-
     // Cleanup on unmount - CRITICAL: remove click listener to prevent memory leaks
     return () => {
       map.removeLayer(heatLayer);
-      map.off('zoomend', handleZoomEnd);
       if (onMarkerClick) {
         map.off('click', handleHeatmapClick);
       }
