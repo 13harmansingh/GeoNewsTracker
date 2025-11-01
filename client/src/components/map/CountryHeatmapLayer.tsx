@@ -37,15 +37,23 @@ const CountryHeatmapLayer = memo(function CountryHeatmapLayer({
       return [lat, lng, scaledIntensity];
     });
 
-    // Create heatmap layer
-    const heatLayer = (L as any).heatLayer(heatPoints, {
-      radius: 50, // Larger radius for country-level visualization
-      blur: 35,
-      maxZoom: 17,
-      max: 1.0,
-      gradient
-    });
+    // Calculate zoom-responsive options (Snapchat-style)
+    const getHeatmapOptions = (zoom: number) => {
+      const baseRadius = 30;
+      const baseBlur = 20;
+      const zoomFactor = Math.pow(1.3, zoom - 4);
+      
+      return {
+        radius: Math.max(30, Math.min(baseRadius * zoomFactor, 100)),
+        blur: Math.max(20, Math.min(baseBlur * zoomFactor, 70)),
+        maxZoom: 20,
+        max: 1.0,
+        gradient
+      };
+    };
 
+    // Create initial heatmap layer
+    let heatLayer = (L as any).heatLayer(heatPoints, getHeatmapOptions(map.getZoom()));
     heatLayer.addTo(map);
 
     // Add click handler if provided
@@ -88,11 +96,26 @@ const CountryHeatmapLayer = memo(function CountryHeatmapLayer({
       map.on('click', clickListener);
     }
 
+    // Zoom handler to update heatmap on zoom (Snapchat-style)
+    const handleZoomEnd = () => {
+      const newOptions = getHeatmapOptions(map.getZoom());
+      
+      // Remove old layer
+      map.removeLayer(heatLayer);
+      
+      // Create new layer with updated radius/blur
+      heatLayer = (L as any).heatLayer(heatPoints, newOptions);
+      heatLayer.addTo(map);
+    };
+
+    map.on('zoomend', handleZoomEnd);
+
     // Cleanup
     return () => {
       if (clickListener) {
         map.off('click', clickListener);
       }
+      map.off('zoomend', handleZoomEnd);
       map.removeLayer(heatLayer);
     };
   }, [countries, map, onClick, gradient]);

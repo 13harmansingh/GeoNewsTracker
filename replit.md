@@ -40,6 +40,15 @@ Preferred communication style: Simple, everyday language.
 - Optimized for Replit public URL deployments, utilizing HTTPS-only Replit Auth. Frontend assets built with Vite, served by Express. Backend bundled with esbuild. PostgreSQL and Redis configurations via environment variables.
 
 ## Recent Changes (November 1, 2025)
+- **Snapchat-Style Map Redesign**: Complete visual transformation matching Snapchat's Snap Map aesthetic
+  - **Clean Light Theme**: Switched to CartoDB Positron tiles (soft, minimal Snapchat-style basemap)
+  - **Ocean Color**: Updated to soft blue (#C5E1F5) matching Snapchat's water color
+  - **Zoom-Responsive Heatmaps**: Blobs dynamically scale with zoom level (exponential radius/blur)
+  - **Snapchat Gradient**: blue→cyan→yellow→orange→red color scheme for organic heat visualization
+  - **Geolocation**: Browser-based "Find My Location" button (already functional)
+  - **Reverse Geocoding**: Click-to-fetch location-based news (already functional)
+  - Result: Beautiful, smooth heatmaps that persist at all zoom levels like Snapchat
+
 - **Performance Optimizations**: Significantly improved application responsiveness
   - **pg-boss workers**: Increased from 3 to 5 concurrent workers for 67% faster AI bias processing
   - **Heatmap rendering**: Fixed re-rendering bug - country heatmap now renders only once (was 10x)
