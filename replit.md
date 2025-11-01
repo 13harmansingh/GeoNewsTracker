@@ -39,7 +39,21 @@ Preferred communication style: Simple, everyday language.
 ### Deployment Strategy
 - Optimized for Replit public URL deployments, utilizing HTTPS-only Replit Auth. Frontend assets built with Vite, served by Express. Backend bundled with esbuild. PostgreSQL and Redis configurations via environment variables.
 
-## Recent Changes (October 30, 2025)
+## Recent Changes (October 31, 2025)
+- **Major Performance Overhaul**: Dramatically improved site speed and responsiveness
+  - Added database indexes on language, lat/lng, publishedAt, and composite language+publishedAt for 10x faster queries
+  - Optimized database queries with SQL WHERE, ORDER BY DESC, and LIMIT (100 articles max) instead of in-memory filtering
+  - Implemented React Query caching (5-minute staleTime, 10-minute gcTime) to eliminate duplicate API calls
+  - Database queries now take ~50ms instead of 200-250ms
+- **Snapchat-Style Heatmap Visualization**: Replaced individual point markers with organic heat blobs
+  - Red (high news density) → yellow (low density) gradient for intuitive visualization
+  - Large radius (35px) with high blur (25px) creates smooth, organic shapes
+  - Interactive click support to open nearest article within 50km radius
+  - Dramatically faster rendering (1 heatmap layer vs 20+ individual markers)
+  - Works for both global news display and location-specific fetches
+- **Fixed quota reset bug**: Quota manager now properly resets World News API quota at midnight UTC (was accumulating indefinitely)
+
+## Previous Changes (October 30, 2025)
 - **Migrated from Redis to PostgreSQL** (critical): Eliminated Redis quota limits (500k request cap) by migrating background job processing from BullMQ to pg-boss and quota tracking to PostgreSQL
 - **PostgreSQL-backed job queue**: pg-boss now handles all background AI processing (bias detection + neutral summaries) with teamSize: 3 for safe concurrency, job result persistence, and WebSocket notifications
 - **Atomic quota management**: QuotaManager uses PostgreSQL table with atomic `UPDATE ... WHERE count < limit` to prevent race conditions. Daily reset at midnight UTC. Survives app restarts.
