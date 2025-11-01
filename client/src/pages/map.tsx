@@ -31,6 +31,7 @@ export default function MapPage() {
   const [fetchedZones, setFetchedZones] = useState<ZoneData[]>([]); // Multiple persistent zones
   const [activeZone, setActiveZone] = useState<ZoneData | null>(null); // Currently selected zone for panel
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
+  const [isHandlingCountryClick, setIsHandlingCountryClick] = useState(false);
 
   const { data: allNews = [], isLoading } = useNews.useAllNews(language);
   const { data: filteredNews = [] } = useNews.useFilteredNews(activeFilter, language);
@@ -102,6 +103,9 @@ export default function MapPage() {
   const handleCountryClick = (country: CountryData) => {
     console.log(`🌍 Country heatmap clicked: ${country.country} (${country.count} articles)`);
     
+    // Set flag to prevent area click handler from firing
+    setIsHandlingCountryClick(true);
+    
     // Convert CountryData to ZoneData format
     const countryZone: ZoneData = {
       id: `country-${country.countryCode}-${language}`,
@@ -114,6 +118,9 @@ export default function MapPage() {
     
     setActiveZone(countryZone);
     openArticle(country.articles[0]);
+    
+    // Reset flag after a short delay
+    setTimeout(() => setIsHandlingCountryClick(false), 100);
   };
 
   const handleCloseDrawer = () => {
@@ -122,6 +129,12 @@ export default function MapPage() {
   };
 
   const handleAreaClick = async (lat: number, lng: number) => {
+    // Skip if we're handling a country heatmap click
+    if (isHandlingCountryClick) {
+      console.log('⏭️ Skipping area click - country heatmap was clicked');
+      return;
+    }
+    
     console.log(`📍 Map clicked at: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
     setIsReverseGeocoding(true);
     
