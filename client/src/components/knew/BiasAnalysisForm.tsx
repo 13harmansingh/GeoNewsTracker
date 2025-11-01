@@ -18,7 +18,6 @@ interface BiasAnalysisFormProps {
 type BiasTag = "left" | "center" | "right";
 
 export function BiasAnalysisForm({ article, isPro }: BiasAnalysisFormProps) {
-  const [selectedTag, setSelectedTag] = useState<BiasTag | null>(null);
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
   const [aiResult, setAiResult] = useState<{ prediction: BiasTag; confidence: number; summary: string } | null>(null);
   const [summaryExpanded, setSummaryExpanded] = useState(false);
@@ -41,18 +40,10 @@ export function BiasAnalysisForm({ article, isPro }: BiasAnalysisFormProps) {
       return await response.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Bias Tag Saved",
-        description: "Your analysis has been saved successfully",
-      });
       queryClient.invalidateQueries({ queryKey: ["/api/bias", article.id] });
     },
-    onError: () => {
-      toast({
-        title: "Save Failed",
-        description: "Could not save bias analysis",
-        variant: "destructive",
-      });
+    onError: (error) => {
+      console.error('Failed to save bias analysis:', error);
     },
   });
 
@@ -64,19 +55,14 @@ export function BiasAnalysisForm({ article, isPro }: BiasAnalysisFormProps) {
       });
       const data = await response.json();
       setAiResult(data);
-      setSelectedTag(data.prediction);
 
-      // Auto-save when confidence > 75%
+      // Auto-save silently when confidence > 75%
       if (data.confidence > 0.75) {
-        console.log(`🤖 Auto-applying bias tag "${data.prediction}" with ${(data.confidence * 100).toFixed(0)}% confidence`);
+        console.log(`🤖 Auto-saving bias analysis "${data.prediction}" with ${(data.confidence * 100).toFixed(0)}% confidence`);
         saveMutation.mutate({ tag: data.prediction, aiData: data });
       }
     } catch (error) {
-      toast({
-        title: "AI Analysis Failed",
-        description: "Could not analyze bias",
-        variant: "destructive",
-      });
+      console.error('AI analysis failed:', error);
     } finally {
       setAiAnalyzing(false);
     }
@@ -90,7 +76,6 @@ export function BiasAnalysisForm({ article, isPro }: BiasAnalysisFormProps) {
         confidence: existingAnalysis.aiConfidence || 0,
         summary: existingAnalysis.aiSummary || "",
       });
-      setSelectedTag(existingAnalysis.manualTag as BiasTag || existingAnalysis.aiPrediction as BiasTag);
     } else if (isPro && !existingAnalysis && !aiResult) {
       // Run AI analysis if no cached data
       runAIAnalysis();
@@ -147,91 +132,81 @@ export function BiasAnalysisForm({ article, isPro }: BiasAnalysisFormProps) {
       </div>
 
       {aiResult && (
-        <div className="p-4 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 mb-4 shadow-sm" data-testid="ai-prediction">
-          {/* Compact flex row with bias and sentiment */}
-          <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <AlertCircle className="w-4 h-4 text-purple-500" />
-              <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
-                Political Leaning:
+        <div className="space-y-4">
+          {/* AI Bias Prediction - Read Only */}
+          <div className="p-4 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm" data-testid="ai-prediction">
+            <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <AlertCircle className="w-4 h-4 text-purple-500" />
+                <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                  Political Leaning:
+                </span>
+                <Badge className={`${getTagBadgeColor(aiResult.prediction)} border`}>
+                  {aiResult.prediction.toUpperCase()}
+                </Badge>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2 mb-3">
+              <TrendingUp className="w-4 h-4 text-green-500" />
+              <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">
+                Confidence: {(aiResult.confidence * 100).toFixed(0)}%
               </span>
-              <Badge className={`${getTagBadgeColor(aiResult.prediction)} border`}>
-                {aiResult.prediction.toUpperCase()}
-              </Badge>
             </div>
-            <ArticleSentimentMeter sentiment={article.sentiment} compact={true} />
-          </div>
-          
-          <div className="flex items-center gap-2 mb-3">
-            <TrendingUp className="w-4 h-4 text-green-500" />
-            <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">
-              Confidence: {(aiResult.confidence * 100).toFixed(0)}%
-            </span>
-          </div>
-          
-          {/* Collapsible AI Summary */}
-          {aiResult.summary && (
-            <div className="mt-3 border-t border-gray-200 dark:border-gray-700 pt-3">
-              <button
-                onClick={() => setSummaryExpanded(!summaryExpanded)}
-                className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors w-full"
-                data-testid="button-toggle-summary"
-              >
-                <Sparkles className="w-4 h-4" />
-                <span>AI Neutral Summary (80 words)</span>
-                {summaryExpanded ? (
-                  <ChevronUp className="w-4 h-4 ml-auto" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 ml-auto" />
+            
+            {/* Collapsible AI Summary */}
+            {aiResult.summary && (
+              <div className="mt-3 border-t border-gray-200 dark:border-gray-700 pt-3">
+                <button
+                  onClick={() => setSummaryExpanded(!summaryExpanded)}
+                  className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors w-full"
+                  data-testid="button-toggle-summary"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>AI Neutral Summary (80 words)</span>
+                  {summaryExpanded ? (
+                    <ChevronUp className="w-4 h-4 ml-auto" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 ml-auto" />
+                  )}
+                </button>
+                {summaryExpanded && (
+                  <p className="text-xs text-gray-700 dark:text-gray-300 italic mt-2 leading-relaxed bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg" data-testid="ai-summary-text">
+                    "{aiResult.summary}"
+                  </p>
                 )}
-              </button>
-              {summaryExpanded && (
-                <p className="text-xs text-gray-700 dark:text-gray-300 italic mt-2 leading-relaxed bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg" data-testid="ai-summary-text">
-                  "{aiResult.summary}"
+              </div>
+            )}
+          </div>
+
+          {/* Article Sentiment Explanation */}
+          <div className="p-4 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl border border-blue-200 dark:border-blue-700" data-testid="sentiment-explanation">
+            <div className="flex items-start gap-3">
+              <ArticleSentimentMeter sentiment={article.sentiment} compact={false} />
+              <div className="flex-1">
+                <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                  What does this sentiment mean?
+                </h4>
+                <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
+                  {article.sentiment > 0.3 ? (
+                    <>
+                      <strong>Positive:</strong> This article contains optimistic language, uplifting news, or favorable outcomes. The tone suggests good developments or constructive perspectives.
+                    </>
+                  ) : article.sentiment < -0.3 ? (
+                    <>
+                      <strong>Negative:</strong> This article discusses challenging issues, conflicts, or concerning developments. The language reflects serious or difficult topics.
+                    </>
+                  ) : (
+                    <>
+                      <strong>Neutral:</strong> This article maintains balanced, factual reporting without strong emotional language. It presents information objectively.
+                    </>
+                  )}
                 </p>
-              )}
+              </div>
             </div>
-          )}
+          </div>
         </div>
       )}
-
-      {existingAnalysis && (
-        <div className="p-4 bg-green-50 rounded-xl border border-green-200 mb-4" data-testid="saved-analysis">
-          <p className="text-sm text-green-700 font-medium">
-            ✓ Tagged as <strong>{existingAnalysis.manualTag?.toUpperCase()}</strong>
-          </p>
-        </div>
-      )}
-
-      <div className="space-y-3">
-        <label className="text-sm text-gray-700 font-medium">Manual Bias Tag:</label>
-        <div className="grid grid-cols-3 gap-2">
-          {(["left", "center", "right"] as BiasTag[]).map((tag) => (
-            <Button
-              key={tag}
-              variant={selectedTag === tag ? "default" : "outline"}
-              className={`${
-                selectedTag === tag
-                  ? getTagColor(tag)
-                  : "border-gray-300 text-gray-700 hover:bg-gray-100 bg-white"
-              } transition-all touch-feedback`}
-              onClick={() => setSelectedTag(tag)}
-              data-testid={`button-tag-${tag}`}
-            >
-              {tag.toUpperCase()}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      <Button
-        onClick={() => selectedTag && saveMutation.mutate({ tag: selectedTag })}
-        disabled={!selectedTag || saveMutation.isPending}
-        className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white mt-4 touch-feedback"
-        data-testid="button-save-analysis"
-      >
-        {saveMutation.isPending ? "Saving..." : "Save Analysis"}
-      </Button>
     </div>
   );
 }
