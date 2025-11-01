@@ -10,6 +10,7 @@ import { useArticleExperience } from "@/contexts/ArticleExperienceContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { NewsCache } from "@/utils/newsCache";
 import { CountryAggregation, type CountryData } from "@/utils/countryAggregation";
+import { geocodeLocation, isLikelyLocation } from "@/utils/geocoding";
 import type { NewsArticle } from "@shared/schema";
 
 interface ZoneData {
@@ -220,15 +221,63 @@ export default function MapPage() {
     setSearchQuery(""); // Clear search when filtering
   };
 
-  const handleSearch = (query: string) => {
+  const handleSearch = async (query: string) => {
     console.log('🔍 Search triggered with query:', query);
-    setSearchQuery(query.trim());
-    // Clear active filter when searching
-    if (query.trim()) {
-      setActiveFilter(null);
-      // Center map on searched location if it's a known place
-      centerMapOnLocation(query.trim());
+    
+    if (!query.trim()) {
+      setSearchQuery('');
+      return;
     }
+    
+    // Clear active filter when searching
+    setActiveFilter(null);
+    
+    // Detect if query is a location
+    if (isLikelyLocation(query.trim())) {
+      console.log('📍 Detected location search, geocoding...');
+      setIsReverseGeocoding(true);
+      
+      try {
+        const geocodeResult = await geocodeLocation(query.trim());
+        
+        if (geocodeResult) {
+          console.log(`✅ Found location: ${geocodeResult.displayName}`);
+          
+          // Smoothly pan map to location
+          setMapCenter([geocodeResult.lat, geocodeResult.lng]);
+          setMapZoom(12);
+          
+          // Small delay for map to pan smoothly
+          await new Promise(resolve => setTimeout(resolve, 800));
+          
+          // Fetch news for that area using the existing area click handler
+          // This will trigger the location-based fetch and open the drawer
+          await handleAreaClick(geocodeResult.lat, geocodeResult.lng);
+          
+          setIsReverseGeocoding(false);
+          return;
+        } else {
+          console.log('❌ Could not geocode location, falling back to keyword search');
+        }
+      } catch (error) {
+        console.error('Geocoding error:', error);
+      } finally {
+        setIsReverseGeocoding(false);
+      }
+    }
+    
+    // Fallback to keyword search
+    console.log('🔍 Performing keyword search');
+    setSearchQuery(query.trim());
+    
+    // Auto-open drawer with first search result after a short delay for data to load
+    setTimeout(() => {
+      const results = searchResults || [];
+      if (results.length > 0) {
+        console.log(`📰 Opening drawer with ${results.length} search results`);
+        openArticle(results[0]);
+      }
+    }, 600);
   };
 
   const centerMapOnLocation = (locationName: string) => {
