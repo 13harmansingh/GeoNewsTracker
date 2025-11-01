@@ -43,7 +43,8 @@ Preferred communication style: Simple, everyday language.
 - **Snapchat-Style Map Redesign**: Complete visual transformation matching Snapchat's Snap Map aesthetic
   - **Pastel Color Tiles**: Switched to CartoDB Voyager tiles with soft mint/green landmasses and light blue ocean
   - **Ocean Color**: Soft blue background (#C5E1F5) matching Snapchat's water aesthetic
-  - **Seamless Zoom Animation**: Heatmaps now zoom smoothly with map tiles (no more jumpy refreshes)
+  - **Seamless Zoom Animation**: Heatmaps update during zoom animation (using 'zoom' event) instead of after, maintaining geographic accuracy while providing smooth transitions
+  - **Adaptive Radius/Blur**: Heatmap blob size scales exponentially with zoom (small at world view, large at city view) for consistent visibility
   - **Snapchat Gradient**: blue→cyan→yellow→orange→red color scheme for organic heat visualization
   - **Geolocation**: Browser-based "Find My Location" button with fallback to NYC
   - **Reverse Geocoding**: Click anywhere on map to fetch location-based news

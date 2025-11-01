@@ -37,10 +37,21 @@ const CountryHeatmapLayer = memo(function CountryHeatmapLayer({
       return [lat, lng, scaledIntensity];
     });
 
-    // Create heatmap layer with static radius/blur for smooth zoom transitions
-    const heatLayer = (L as any).heatLayer(heatPoints, {
-      radius: 50,
-      blur: 35,
+    // Calculate zoom-appropriate radius/blur
+    const getHeatmapRadius = (zoom: number) => {
+      const scale = Math.pow(1.25, zoom - 4);
+      return Math.max(25, Math.min(35 * scale, 80));
+    };
+
+    const getHeatmapBlur = (zoom: number) => {
+      const scale = Math.pow(1.25, zoom - 4);
+      return Math.max(18, Math.min(25 * scale, 60));
+    };
+
+    // Create initial heatmap layer
+    let heatLayer = (L as any).heatLayer(heatPoints, {
+      radius: getHeatmapRadius(map.getZoom()),
+      blur: getHeatmapBlur(map.getZoom()),
       maxZoom: 20,
       max: 1.0,
       gradient
@@ -87,11 +98,27 @@ const CountryHeatmapLayer = memo(function CountryHeatmapLayer({
       map.on('click', clickListener);
     }
 
+    // Smooth zoom handler - updates radius/blur without recreating layer
+    const handleZoom = () => {
+      const currentZoom = map.getZoom();
+      
+      // Update internal options and redraw (avoids layer destruction/recreation)
+      heatLayer.setOptions({
+        radius: getHeatmapRadius(currentZoom),
+        blur: getHeatmapBlur(currentZoom)
+      });
+      heatLayer.redraw();
+    };
+
+    // Listen to 'zoom' event for smooth updates
+    map.on('zoom', handleZoom);
+
     // Cleanup
     return () => {
       if (clickListener) {
         map.off('click', clickListener);
       }
+      map.off('zoom', handleZoom);
       map.removeLayer(heatLayer);
     };
   }, [countries, map, onClick, gradient]);

@@ -48,11 +48,22 @@ export default function HeatmapLayer({ news, onMarkerClick, gradient = DEFAULT_G
       0.8, // Intensity (0-1) - can be adjusted based on article properties
     ]);
 
-    // Create heatmap layer with static radius/blur for smooth zoom transitions
-    // Leaflet will handle zoom animations naturally without recreating the layer
-    const heatLayer = L.heatLayer(heatData, {
-      radius: 35,
-      blur: 25,
+    // Calculate zoom-appropriate radius/blur
+    const getHeatmapRadius = (zoom: number) => {
+      // Exponential scaling for smooth transitions
+      const scale = Math.pow(1.3, zoom - 5);
+      return Math.max(15, Math.min(25 * scale, 60));
+    };
+
+    const getHeatmapBlur = (zoom: number) => {
+      const scale = Math.pow(1.3, zoom - 5);
+      return Math.max(10, Math.min(18 * scale, 45));
+    };
+
+    // Create initial heatmap layer
+    let heatLayer = L.heatLayer(heatData, {
+      radius: getHeatmapRadius(map.getZoom()),
+      blur: getHeatmapBlur(map.getZoom()),
       maxZoom: 20,
       max: 1.0,
       minOpacity: 0.5,
@@ -89,9 +100,25 @@ export default function HeatmapLayer({ news, onMarkerClick, gradient = DEFAULT_G
       map.on('click', handleHeatmapClick);
     }
 
+    // Smooth zoom handler - updates radius/blur without recreating layer
+    const handleZoom = () => {
+      const currentZoom = map.getZoom();
+      
+      // Update internal options and redraw (avoids layer destruction/recreation)
+      (heatLayer as any).setOptions({
+        radius: getHeatmapRadius(currentZoom),
+        blur: getHeatmapBlur(currentZoom)
+      });
+      (heatLayer as any).redraw();
+    };
+
+    // Listen to 'zoom' event for smooth updates during zoom animation
+    map.on('zoom', handleZoom);
+
     // Cleanup on unmount - CRITICAL: remove click listener to prevent memory leaks
     return () => {
       map.removeLayer(heatLayer);
+      map.off('zoom', handleZoom);
       if (onMarkerClick) {
         map.off('click', handleHeatmapClick);
       }
