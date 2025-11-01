@@ -180,31 +180,33 @@ export function BiasAnalysisForm({ article, isPro }: BiasAnalysisFormProps) {
           </div>
 
           {/* Article Sentiment Explanation */}
-          <div className="p-4 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl border border-blue-200 dark:border-blue-700" data-testid="sentiment-explanation">
-            <div className="flex items-start gap-3">
-              <ArticleSentimentMeter sentiment={article.sentiment} compact={false} />
-              <div className="flex-1">
-                <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                  What does this sentiment mean?
-                </h4>
-                <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
-                  {article.sentiment > 0.3 ? (
-                    <>
-                      <strong>Positive:</strong> This article contains optimistic language, uplifting news, or favorable outcomes. The tone suggests good developments or constructive perspectives.
-                    </>
-                  ) : article.sentiment < -0.3 ? (
-                    <>
-                      <strong>Negative:</strong> This article discusses challenging issues, conflicts, or concerning developments. The language reflects serious or difficult topics.
-                    </>
-                  ) : (
-                    <>
-                      <strong>Neutral:</strong> This article maintains balanced, factual reporting without strong emotional language. It presents information objectively.
-                    </>
-                  )}
-                </p>
+          {article.sentiment !== null && (
+            <div className="p-4 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl border border-blue-200 dark:border-blue-700" data-testid="sentiment-explanation">
+              <div className="flex items-start gap-3">
+                <ArticleSentimentMeter sentiment={article.sentiment} compact={false} />
+                <div className="flex-1">
+                  <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                    What does this sentiment mean?
+                  </h4>
+                  <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
+                    {article.sentiment > 0.3 ? (
+                      <>
+                        <strong>Positive:</strong> This article contains optimistic language, uplifting news, or favorable outcomes. The tone suggests good developments or constructive perspectives.
+                      </>
+                    ) : article.sentiment < -0.3 ? (
+                      <>
+                        <strong>Negative:</strong> This article discusses challenging issues, conflicts, or concerning developments. The language reflects serious or difficult topics.
+                      </>
+                    ) : (
+                      <>
+                        <strong>Neutral:</strong> This article maintains balanced, factual reporting without strong emotional language. It presents information objectively.
+                      </>
+                    )}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>

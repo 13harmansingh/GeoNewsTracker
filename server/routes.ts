@@ -620,7 +620,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Search news articles (MUST be before /api/news/:id)
+  // Search news articles with multi-keyword AND logic (MUST be before /api/news/:id)
   app.get("/api/news/search", async (req, res) => {
     try {
       const { q } = req.query;
@@ -633,26 +633,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const searchQuery = q.trim();
-      console.log('🔍 Processing search for:', searchQuery);
+      
+      // Split by comma or space for multi-keyword search
+      const keywords = searchQuery.split(/[,\s]+/).map(k => k.toLowerCase().trim()).filter(k => k.length > 0);
+      console.log(`🔍 Multi-keyword search for: ${keywords.join(', ')} (${keywords.length} keywords)`);
 
-      let articles;
-      try {
-        articles = await newsService.searchNews(searchQuery, language);
-        console.log('✅ Found', articles.length, 'articles from API search');
-      } catch (apiError) {
-        console.warn("Failed to search news from API, using local storage:", apiError);
-        const allArticles = await storage.getNewsArticles(language);
-        const searchTerm = searchQuery.toLowerCase();
+      // Always search local database with multi-keyword AND logic
+      const allArticles = await storage.getNewsArticles(language);
+      
+      // Filter articles that contain ALL keywords (AND logic)
+      const articles = allArticles.filter(article => {
+        const searchableText = [
+          article.title,
+          article.summary,
+          article.content || '',
+          article.location,
+          article.category
+        ].join(' ').toLowerCase();
         
-        articles = allArticles.filter(article => 
-          article.title.toLowerCase().includes(searchTerm) ||
-          article.summary.toLowerCase().includes(searchTerm) ||
-          article.location.toLowerCase().includes(searchTerm) ||
-          article.category.toLowerCase().includes(searchTerm)
-        );
-        console.log('✅ Found', articles.length, 'articles from local search');
-      }
-
+        // Article must contain ALL keywords
+        return keywords.every(keyword => searchableText.includes(keyword));
+      });
+      
+      console.log(`✅ Found ${articles.length} articles matching ALL keywords`);
       res.json(articles || []);
     } catch (error) {
       console.error('❌ Search error:', error);

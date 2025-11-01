@@ -42,12 +42,15 @@ export default function MapPage() {
     setFetchedZones(cached);
   }, []);
 
-  // Display base news (global heatmap always visible)
-  const baseNews = searchQuery 
-    ? (searchResults || []) 
-    : activeFilter 
+  // Display news for heatmap (always use base news, ignore search)
+  const heatmapNews = activeFilter 
     ? (filteredNews || []) 
     : (allNews || []);
+
+  // Display news for article list (includes search results)
+  const displayNews = searchQuery 
+    ? (searchResults || []) 
+    : heatmapNews;
 
   const handleMarkerClick = (article: NewsArticle) => {
     openArticle(article);
@@ -56,8 +59,8 @@ export default function MapPage() {
   const handleGlobalHeatmapClick = (article: NewsArticle) => {
     console.log(`🌍 Global heatmap clicked - showing nearby articles for ${article.title}`);
     
-    // Find nearby articles (within 100km)
-    const nearbyArticles = baseNews.filter(a => {
+    // Find nearby articles (within 100km) from heatmap news only
+    const nearbyArticles = heatmapNews.filter(a => {
       const distance = Math.sqrt(
         Math.pow(a.latitude - article.latitude, 2) + 
         Math.pow(a.longitude - article.longitude, 2)
@@ -314,9 +317,9 @@ export default function MapPage() {
     );
   };
 
-  // Get related news (same category or nearby location)
+  // Get related news (same category or nearby location) from display news
   const relatedNews = selectedArticle
-    ? baseNews.filter(
+    ? displayNews.filter(
         (article: NewsArticle) =>
           article.id !== selectedArticle.id &&
           (article.category === selectedArticle.category ||
@@ -332,9 +335,9 @@ export default function MapPage() {
       {/* Search Bar */}
       <SearchBar onSearch={handleSearch} />
 
-      {/* Interactive Map */}
+      {/* Interactive Map - Always shows base news, not affected by search */}
       <InteractiveMap
-        globalNews={baseNews}
+        globalNews={heatmapNews}
         fetchedZones={fetchedZones}
         onGlobalHeatmapClick={handleGlobalHeatmapClick}
         onZoneHeatmapClick={handleZoneClick}
