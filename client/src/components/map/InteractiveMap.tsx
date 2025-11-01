@@ -1,17 +1,18 @@
 import { useEffect, useRef } from "react";
-import { MapContainer, TileLayer, useMap, useMapEvents, Circle } from "react-leaflet";
+import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import type { NewsArticle } from "@shared/schema";
-import HeatmapLayer from "./HeatmapLayer";
+import HeatmapLayer, { FETCHED_ZONE_GRADIENT } from "./HeatmapLayer";
 import "leaflet/dist/leaflet.css";
 
 interface ZoneData {
+  id: string;
   country: string;
   countryCode: string;
   articles: NewsArticle[];
   center: [number, number];
+  language: string;
 }
-
 
 function MapController({ center, zoom }: { center: number[], zoom: number }) {
   const map = useMap();
@@ -24,15 +25,15 @@ function MapController({ center, zoom }: { center: number[], zoom: number }) {
 }
 
 interface InteractiveMapProps {
-  news: NewsArticle[];
-  onMarkerClick: (article: NewsArticle) => void;
+  globalNews: NewsArticle[];
+  fetchedZones: ZoneData[];
+  onGlobalHeatmapClick: (article: NewsArticle) => void;
+  onZoneHeatmapClick: (zone: ZoneData) => void;
   center: number[];
   zoom: number;
   isLoading: boolean;
   language: string;
   onAreaClick?: (lat: number, lng: number) => void;
-  zoneData?: ZoneData | null;
-  onZoneClick?: () => void;
 }
 
 function MapClickHandler({ onAreaClick }: { onAreaClick?: (lat: number, lng: number) => void }) {
@@ -48,15 +49,15 @@ function MapClickHandler({ onAreaClick }: { onAreaClick?: (lat: number, lng: num
 }
 
 export default function InteractiveMap({ 
-  news, 
-  onMarkerClick, 
+  globalNews,
+  fetchedZones,
+  onGlobalHeatmapClick,
+  onZoneHeatmapClick,
   center, 
   zoom,
   isLoading,
   language,
-  onAreaClick,
-  zoneData,
-  onZoneClick
+  onAreaClick
 }: InteractiveMapProps) {
   const mapRef = useRef<any>(null);
 
@@ -84,35 +85,25 @@ export default function InteractiveMap({
 
         <MapClickHandler onAreaClick={onAreaClick} />
 
-        {/* Zone Overlay - visualizes clicked region */}
-        {zoneData && (
-          <>
-            <Circle
-              center={zoneData.center}
-              radius={300000} // 300km radius for country-level zone
-              pathOptions={{
-                fillColor: '#007AFF',
-                fillOpacity: 0,
-                color: 'transparent',
-                weight: 0
-              }}
-              eventHandlers={{
-                click: () => {
-                  console.log(`🌍 Zone clicked: ${zoneData.country} (${zoneData.articles.length} articles)`);
-                  if (onZoneClick) {
-                    onZoneClick();
-                  }
-                }
-              }}
-            />
-            <HeatmapLayer news={zoneData.articles} onMarkerClick={onMarkerClick} />
-          </>
+        {/* Global Heatmap - red→yellow, always visible */}
+        {!isLoading && globalNews && Array.isArray(globalNews) && globalNews.length > 0 && (
+          <HeatmapLayer 
+            news={globalNews} 
+            onMarkerClick={onGlobalHeatmapClick}
+            id="global"
+          />
         )}
 
-        {/* Global Heatmap - shows all news as organic heat blobs */}
-        {!isLoading && !zoneData && news && Array.isArray(news) && news.length > 0 && (
-          <HeatmapLayer news={news} onMarkerClick={onMarkerClick} />
-        )}
+        {/* Fetched Zone Heatmaps - blue→cyan, persistent layers */}
+        {!isLoading && fetchedZones.map(zone => (
+          <HeatmapLayer
+            key={zone.id}
+            news={zone.articles}
+            onMarkerClick={(article) => onZoneHeatmapClick(zone)}
+            gradient={FETCHED_ZONE_GRADIENT}
+            id={zone.id}
+          />
+        ))}
       </MapContainer>
 
       {isLoading && (
