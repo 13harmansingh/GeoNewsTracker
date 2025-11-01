@@ -75,10 +75,16 @@ export default function CountryHeatmapLayer({
         if (nearestCountry) {
           const country = nearestCountry as CountryData;
           console.log(`🗺️ Country heatmap clicked: ${country.country} (${country.count} articles)`);
+          
+          // Stop propagation to prevent triggering the general map click handler
+          (e as any).originalEvent?.stopPropagation();
+          L.DomEvent.stopPropagation(e as any);
+          
           onClick(country);
         }
       };
 
+      // Use a higher priority for country heatmap clicks
       map.on('click', clickListener);
     }
 

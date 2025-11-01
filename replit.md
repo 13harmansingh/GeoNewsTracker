@@ -40,13 +40,29 @@ Preferred communication style: Simple, everyday language.
 - Optimized for Replit public URL deployments, utilizing HTTPS-only Replit Auth. Frontend assets built with Vite, served by Express. Backend bundled with esbuild. PostgreSQL and Redis configurations via environment variables.
 
 ## Recent Changes (November 1, 2025)
+- **Proactive Country-Level Heatmaps**: Revolutionary aggregated visualization showing all available news by country
+  - Automatically groups all news articles by country with intensity-based visualization
+  - Shows one heatmap per country with blue→red gradient (intensity = article count)
+  - Clicking country heatmap opens drawer with all articles for that country (no API fetch required)
+  - Replaces reactive "click to fetch" with proactive "all news already visible" paradigm
+  - Uses CountryAggregation utility to extract country from location, calculate center, and normalize intensity
 - **Multi-Heatmap System with Smart Caching**: Revolutionary persistent visualization with zero redundant fetches
   - **Global Heatmap** (red→yellow): Shows all current news, clickable to display nearby articles instantly (no fetch)
+  - **Country Heatmaps** (blue→red): Aggregated view of all available news grouped by country
   - **Fetched Zone Heatmaps** (blue→cyan): Location-based fetches create persistent colored overlays
   - **LocalStorage Caching**: All fetched zones saved to browser with 24-hour auto-expiry
   - **Instant Restore**: Page refreshes reload all cached heatmaps without re-fetching
-  - **Multi-Layer Rendering**: Global and all fetched zones visible simultaneously for rich geographic context
+  - **Multi-Layer Rendering**: Global, country, and all fetched zones visible simultaneously for rich geographic context
   - Zones deduplicated by country + language to prevent redundant storage
+- **Enhanced Search Experience**: Multi-keyword AND logic with static map visualization
+  - Search splits keywords by space or comma, finds articles containing ALL keywords
+  - Searches across title, summary, content, location, and category fields
+  - Map and heatmaps remain static during search - only article list updates
+  - Prevents confusing map state changes when user is just looking for specific articles
+- **Read-Only AI Bias Predictions**: Removed manual bias tagging UI, predictions now display-only
+  - Users can no longer manually tag articles with bias - only AI predictions shown
+  - Removed error popups for bias saves - cleaner UX focused on analysis consumption
+  - Added sentiment explanation tooltips to help users understand mood scores
 
 ## Previous Changes (October 31, 2025)
 - **Major Performance Overhaul**: Dramatically improved site speed and responsiveness
