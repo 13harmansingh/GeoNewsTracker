@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import InteractiveMap from "@/components/map/InteractiveMap";
 import NewsPanel from "@/components/map/NewsPanel";
 import NavigationBar from "@/components/map/NavigationBar";
@@ -111,7 +111,7 @@ export default function MapPage() {
     openArticle(zone.articles[0]);
   };
 
-  const handleCountryClick = (country: CountryData) => {
+  const handleCountryClick = useCallback((country: CountryData) => {
     console.log(`🌍 Country heatmap clicked: ${country.country} (${country.count} articles)`);
     
     // Set flag to prevent area click handler from firing
@@ -132,7 +132,7 @@ export default function MapPage() {
     
     // Reset flag after a short delay
     setTimeout(() => setIsHandlingCountryClick(false), 100);
-  };
+  }, [language, openArticle]);
 
   const handleCloseDrawer = () => {
     closeArticle();

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, memo } from "react";
 import { useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet.heat";
@@ -10,7 +10,7 @@ interface CountryHeatmapLayerProps {
   gradient?: { [key: number]: string };
 }
 
-export default function CountryHeatmapLayer({ 
+const CountryHeatmapLayer = memo(function CountryHeatmapLayer({ 
   countries, 
   onClick,
   gradient = {
@@ -98,4 +98,6 @@ export default function CountryHeatmapLayer({
   }, [countries, map, onClick, gradient]);
 
   return null;
-}
+});
+
+export default CountryHeatmapLayer;
