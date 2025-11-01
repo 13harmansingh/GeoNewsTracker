@@ -54,11 +54,13 @@ Preferred communication style: Simple, everyday language.
   - **Instant Restore**: Page refreshes reload all cached heatmaps without re-fetching
   - **Multi-Layer Rendering**: Global, country, and all fetched zones visible simultaneously for rich geographic context
   - Zones deduplicated by country + language to prevent redundant storage
-- **Enhanced Search Experience**: Multi-keyword AND logic with static map visualization
-  - Search splits keywords by space or comma, finds articles containing ALL keywords
-  - Searches across title, summary, content, location, and category fields
-  - Map and heatmaps remain static during search - only article list updates
-  - Prevents confusing map state changes when user is just looking for specific articles
+- **Enhanced Search Experience**: Smart location detection with smooth map navigation
+  - **Location Search**: Detects cities/states/countries and smoothly pans map to location
+  - **Geocoding**: Uses Nominatim API to convert location names to coordinates
+  - **Auto-fetch**: Automatically fetches news for detected location after panning
+  - **Keyword Search**: Multi-keyword AND logic for non-location queries
+  - **Auto-open Drawer**: Automatically opens drawer with first search result
+  - Map and heatmaps remain static during keyword search - only article list updates
 - **Read-Only AI Bias Predictions**: Removed manual bias tagging UI, predictions now display-only
   - Users can no longer manually tag articles with bias - only AI predictions shown
   - Removed error popups for bias saves - cleaner UX focused on analysis consumption
