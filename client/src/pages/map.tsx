@@ -33,10 +33,20 @@ export default function MapPage() {
   const [activeZone, setActiveZone] = useState<ZoneData | null>(null); // Currently selected zone for panel
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
   const [isHandlingCountryClick, setIsHandlingCountryClick] = useState(false);
+  const [shouldAutoOpenDrawer, setShouldAutoOpenDrawer] = useState(false);
 
   const { data: allNews = [], isLoading } = useNews.useAllNews(language);
   const { data: filteredNews = [] } = useNews.useFilteredNews(activeFilter, language);
   const { data: searchResults = [] } = useNews.useSearchNews(searchQuery, language);
+
+  // Auto-open drawer when search results load
+  useEffect(() => {
+    if (shouldAutoOpenDrawer && searchResults && searchResults.length > 0) {
+      console.log(`📰 Auto-opening drawer with ${searchResults.length} search results`);
+      openArticle(searchResults[0]);
+      setShouldAutoOpenDrawer(false);
+    }
+  }, [searchResults, shouldAutoOpenDrawer]);
 
   // Load cached zones on mount
   useEffect(() => {
@@ -129,11 +139,11 @@ export default function MapPage() {
     setActiveZone(null);
   };
 
-  const handleAreaClick = async (lat: number, lng: number) => {
+  const handleAreaClick = async (lat: number, lng: number, autoOpenDrawer: boolean = false) => {
     // Skip if we're handling a country heatmap click
     if (isHandlingCountryClick) {
       console.log('⏭️ Skipping area click - country heatmap was clicked');
-      return;
+      return null;
     }
     
     console.log(`📍 Map clicked at: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
@@ -203,11 +213,19 @@ export default function MapPage() {
       // Set as active zone
       setActiveZone(newZone);
 
-      // Center map on clicked location
-      setMapCenter([lat, lng]);
-      setMapZoom(6); // Zoom in to show country-level detail
+      // Center map on clicked location (only if not auto-opening)
+      if (!autoOpenDrawer) {
+        setMapCenter([lat, lng]);
+        setMapZoom(6); // Zoom in to show country-level detail
+      }
 
       console.log(`✨ Zone created for ${geocodeData.country} with ${countryNews.length} articles`);
+      
+      // Auto-open drawer if requested (for location searches)
+      if (autoOpenDrawer && countryNews.length > 0) {
+        console.log(`📰 Auto-opening drawer with ${countryNews.length} location articles`);
+        openArticle(countryNews[0]);
+      }
 
     } catch (error) {
       console.error('Error handling map click:', error);
@@ -252,7 +270,7 @@ export default function MapPage() {
           
           // Fetch news for that area using the existing area click handler
           // This will trigger the location-based fetch and open the drawer
-          await handleAreaClick(geocodeResult.lat, geocodeResult.lng);
+          await handleAreaClick(geocodeResult.lat, geocodeResult.lng, true);
           
           setIsReverseGeocoding(false);
           return;
@@ -269,15 +287,7 @@ export default function MapPage() {
     // Fallback to keyword search
     console.log('🔍 Performing keyword search');
     setSearchQuery(query.trim());
-    
-    // Auto-open drawer with first search result after a short delay for data to load
-    setTimeout(() => {
-      const results = searchResults || [];
-      if (results.length > 0) {
-        console.log(`📰 Opening drawer with ${results.length} search results`);
-        openArticle(results[0]);
-      }
-    }, 600);
+    setShouldAutoOpenDrawer(true); // Flag to auto-open when results load
   };
 
   const centerMapOnLocation = (locationName: string) => {
